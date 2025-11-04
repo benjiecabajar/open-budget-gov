@@ -1,6 +1,3 @@
-// ignore_for_file: unnecessary_string_interpolations
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/list_of_departments.dart';
 import 'package:budget_gov/service/departments.dart';
@@ -361,9 +358,9 @@ Widget _buildStatCard({
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: _departments!.length,
+        itemCount: _departments.length,
         itemBuilder: (context, index) {
-          final dept = _departments![index];
+          final dept = _departments[index];
           return _buildDepartmentCard(dept);
         },
       );
