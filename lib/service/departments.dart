@@ -16,7 +16,7 @@ Future<List<ListOfAllDepartmets>> fetchListOfAllDepartments({
   };
 
   final baseUrl = defaultTargetPlatform == TargetPlatform.android
-      ? 'http://10.0.2.2:3000/api/v1/departments/'
+      ? 'http://192.168.18.193:3000/api/v1/departments/' //My Phone ni sir
       : 'http://localhost:3000/api/v1/departments/';
 
   final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
