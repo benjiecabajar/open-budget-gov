@@ -1,8 +1,4 @@
-
-include: package:flutter_lints/flutter.yaml
-=======
 include: package:flutter_lints/flutter.yaml
 analyzer:
   errors:
     deprecated_member_use: ignore
->>>>>>> 5f40768 (update-1)
