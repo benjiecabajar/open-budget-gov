@@ -69,7 +69,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 17),
+            padding: const EdgeInsets.symmetric(horizontal: 11),
             child: Row(
               children: [
                 Expanded(
@@ -97,7 +97,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                               Text(
                                 'Open Budget',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w900,
                                   fontSize: 23,
                                   color: Colors.white,
                                   letterSpacing: 0.2,
@@ -106,6 +106,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                               Text(
                                 'Philippines Budget Transparency',
                                 style: TextStyle(
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 10,
                                   color: Colors.white70,
                                 ),
@@ -134,15 +135,6 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                           dropdownWidth: 75,
                           dropdownMaxHeight: 400,
                         ),
-                        const SizedBox(width: 4),
-                        _buildWideDropdown(
-                          value: widget.selectedType,
-                          items: const ['NEP', 'GAA'],
-                          onChanged: widget.onTypeChanged,
-                          icon: Icons.description,
-                          width: 70,
-                          dropdownWidth: 75,
-                        ),
                       ],
                     ),
                   ),
@@ -161,7 +153,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
     required ValueChanged<String?> onChanged,
     required IconData icon,
     double width = 80,
-    double dropdownWidth = 140,
+    double dropdownWidth = 200,
     double dropdownMaxHeight = 200,
   }) {
     return MouseRegion(
@@ -191,7 +183,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                       style: const TextStyle(
                         color: Colors.white, 
                         fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -202,8 +194,8 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
               width: width,
               height: 32,
               padding: const EdgeInsets.symmetric(horizontal: 5),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
+              decoration: BoxDecoration( 
+                color: const Color(0xFF1A5DAA),
                 borderRadius: BorderRadius.circular(6),
               ),
             ),
@@ -211,8 +203,9 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
               maxHeight: dropdownMaxHeight,
               width: dropdownWidth,
               decoration: BoxDecoration(
-                color: const Color(0xFF0D47A1),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFF1A5DAA), 
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.white.withOpacity(0.4)),
               ),
               offset: Offset((width - dropdownWidth) / 2, 32),
               openInterval: const Interval(
@@ -240,8 +233,8 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                               value,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),

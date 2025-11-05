@@ -1,9 +1,11 @@
 // ignore_for_file: unnecessary_string_interpolations
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/list_of_departments.dart';
 import 'package:budget_gov/service/departments.dart';
 import 'package:budget_gov/components/header.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,10 +14,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// A data class to hold the fetched budget data for a specific year and type.
+class BudgetData {
+  final List<ListOfAllDepartmets> departments;
+  final int totalNepBudget;
+  final int totalDepartments;
+  final int totalAgencies;
+
+  BudgetData(
+      {required this.departments,
+      required this.totalNepBudget,
+      required this.totalDepartments,
+      required this.totalAgencies});
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedYear = '2025';
   String _selectedType = 'NEP';
-  List<ListOfAllDepartmets>? _departments;
+  List<ListOfAllDepartmets> _departments = [];
   bool _isLoading = false;
   String? _errorMessage;
   int _totalNepBudget = 0;
@@ -26,6 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
     '2020', '2021', '2022', '2023', '2024', '2025', '2026',
   ];
 
+  // Cache to store fetched data. The key is a combination of year and type (e.g., "2025-NEP").
+  final Map<String, BudgetData> _cache = {};
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +52,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchDepartments() async {
+    final cacheKey = '$_selectedYear-$_selectedType';
+
+    // 1. Check if data is already in the cache.
+    if (_cache.containsKey(cacheKey)) {
+      setState(() {
+        final cachedData = _cache[cacheKey]!;
+        _departments = cachedData.departments;
+        _totalNepBudget = cachedData.totalNepBudget;
+        _totalDepartments = cachedData.totalDepartments;
+        _totalAgencies = cachedData.totalAgencies;
+        _isLoading = false; // Data is loaded instantly from cache
+      });
+      return; // Stop execution if we have cached data.
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -49,6 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
           0, (sum, dept) => sum + (dept.totalBudgetPesos));
       final totalAgencies =
           departments.fold<int>(0, (sum, dept) => sum + (dept.totalAgencies));
+
+      // 2. Store the newly fetched data in the cache.
+      _cache[cacheKey] = BudgetData(
+        departments: departments,
+        totalNepBudget: totalBudget,
+        totalDepartments: departments.length,
+        totalAgencies: totalAgencies,
+      );
 
       setState(() {
         _departments = departments;
@@ -174,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.apartment_rounded,
                 title: "Departments",
                 value: _totalDepartments.toString(),
-                subtitle: "${_formatNumber(_totalAgencies)} projects tracked",
+                subtitle: "${_formatNumber(_totalAgencies)} agencies tracked",
               ),
               const SizedBox(height: 10),
               _buildStatCard(
@@ -315,7 +357,7 @@ Widget _buildStatCard({
       );
     } else if (_errorMessage != null) {
       return _buildErrorCard();
-    } else if (_departments != null && _departments!.isNotEmpty) {
+    } else if (_departments.isNotEmpty) {
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -362,15 +404,7 @@ Widget _buildStatCard({
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow('Total Budget', '₱${_formatNumber(dept.totalBudgetPesos)}'),
-                _buildInfoRow('Budget (in thousands)', '${_formatNumber(dept.totalBudget)}'),
-                _buildInfoRow('% of Total Budget', '${dept.percentOfTotalBudget.toStringAsFixed(2)}%'),
-                _buildInfoRow('Total Agencies', '${dept.totalAgencies}'),
-              ],
-            ),
+            child: _buildComparisonDetails(dept),
           ),
         ],
       ),
@@ -398,6 +432,43 @@ Widget _buildStatCard({
         ),
       );
 
+  Widget _buildComparisonDetails(ListOfAllDepartmets dept) {
+    final nepBudget = _selectedType == 'NEP' ? dept.totalBudgetPesos : (dept.totalBudgetGaaPesos / (1 + dept.percentDifferenceNepGaa / 100)).round();
+    final gaaBudget = dept.totalBudgetGaaPesos;
+    final difference = gaaBudget - nepBudget;
+    final change = dept.percentDifferenceNepGaa;
+
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        _buildInfoRow(
+          'NEP $_selectedYear',
+          _formatLargeNumber(nepBudget),
+        ),
+        _buildInfoRow(
+          'GAA $_selectedYear',
+          _formatLargeNumber(gaaBudget),
+        ),
+        const Divider(height: 24),
+        _buildInfoRow(
+          'Insertions',
+          '${difference >= 0 ? '+' : ''}${_formatLargeNumber(difference)}',
+          valueColor: difference >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+        ),
+        _buildInfoRow(
+          'Change',
+          '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
+          valueColor: change >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+        ),
+        const Divider(height: 24),
+        _buildInfoRow(
+          'Total Agencies',
+          '${dept.totalAgencies}',
+        ),
+      ],
+    );
+  }
+
   Widget _buildEmptyCard() => const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -408,14 +479,20 @@ Widget _buildStatCard({
         ),
       );
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.black54, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
         ],
       ),
     );
