@@ -4,20 +4,20 @@ import 'package:budget_gov/model/list_of_departments.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-Future<String> getLocalIpAddress() async {
+Future<String?> getLocalNetworkIP() async {
   try {
     final interfaces = await NetworkInterface.list();
     for (var interface in interfaces) {
       for (var addr in interface.addresses) {
-        if (addr.type.name == 'IPv4' && !addr.isLoopback) {
+        if (!addr.isLoopback && addr.type == InternetAddressType.IPv4) {
           return addr.address;
         }
       }
     }
   } catch (e) {
-    debugPrint('Error getting IP: $e');
+    //
   }
-  return 'localhost';
+  return null;
 }
 
 Future<List<ListOfAllDepartmets>> fetchListOfAllDepartments({
@@ -25,26 +25,39 @@ Future<List<ListOfAllDepartmets>> fetchListOfAllDepartments({
   required String year,
   required String type,
 }) async {
-  String baseUrl;
-
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    final ip = await getLocalIpAddress();
-    baseUrl = 'http://$ip:3000/api/v1/departments/';
-  } else {
-    baseUrl = 'http://localhost:3000/api/v1/departments/';
-  }
-
   final queryParams = {
     'withBudget': withBudget.toString(),
     'year': year,
     'type': type,
   };
 
-  final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+  http.Response response;
 
-  debugPrint('Fetching from: $uri');
+  try {
+    String? ip;
 
-  final response = await http.get(uri);
+    if (!kIsWeb) {
+      ip = await getLocalNetworkIP();
+    }
+
+    final baseUrl = defaultTargetPlatform == TargetPlatform.android
+        ? 'http://192.168.18.193:3000/api/v1/departments/'
+        : ip != null
+            ? 'http://$ip:3000/api/v1/departments/'
+            : 'http://localhost:3000/api/v1/departments/';
+
+    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+    response = await http.get(uri);
+    
+  } catch (e) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final fallbackUri = Uri.parse('http://10.0.2.2:3000/api/v1/departments/')
+          .replace(queryParameters: queryParams);
+      response = await http.get(fallbackUri);
+    } else {
+      throw Exception('Failed to load departments: $e');
+    }
+  }
 
   if (response.statusCode == 200) {
     final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
@@ -54,7 +67,6 @@ Future<List<ListOfAllDepartmets>> fetchListOfAllDepartments({
         )
         .toList();
   } else {
-    debugPrint('Failed to load departments: ${response.statusCode}');
-    throw Exception('Failed to load departments');
+    throw Exception('Failed to load departments: ${response.statusCode}');
   }
 }

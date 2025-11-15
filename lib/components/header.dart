@@ -21,7 +21,7 @@ class Header extends StatefulWidget implements PreferredSizeWidget {
   State<Header> createState() => _HeaderState();
 
   @override
-  Size get preferredSize => const Size.fromHeight(58);
+  Size get preferredSize => const Size.fromHeight(68);
 }
 
 class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
@@ -33,13 +33,13 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.2),
+      begin: const Offset(0, -0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
@@ -56,20 +56,20 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
-      toolbarHeight: 58,
+      toolbarHeight: 68,
       elevation: 0,
       backgroundColor: Colors.transparent,
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+            colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1976D2)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Expanded(
@@ -80,62 +80,60 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(7),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(6),
-                              
                             ),
-                          
-                            child: const Icon(Icons.account_balance, color: Colors.white, size: 18),
+                            child: Image.asset(
+                              'assets/images/icon.png',
+                              height: 40,
+                              width: 40,
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Open Budget',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 23,
-                                  color: Colors.white,
-                                  letterSpacing: 0.2,
+                          const SizedBox(width: 12),
+                          const Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'TapatBudget',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 25,
+                                    color: Colors.white,
+                                    letterSpacing: -0.3,
+                                    height: 1.2,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                'Philippines Budget Transparency',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 10,
-                                  color: Colors.white70,
+                                SizedBox(height: 2),
+                                Text(
+                                  'Philippine Budget Transparency',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10,
+                                    color: Colors.white70,
+                                    letterSpacing: 0.5,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-  
                 SlideTransition(
                   position: _slideAnimation,
                   child: FadeTransition(
                     opacity: _fadeAnimation,
-                    child: Row(
-                      children: [
-                        _buildWideDropdown(
-                          value: widget.selectedYear,
-                          items: widget.availableYears,
-                          onChanged: widget.onYearChanged,
-                          icon: Icons.calendar_today,
-                          width: 70,
-                          dropdownWidth: 75,
-                          dropdownMaxHeight: 400,
-                        ),
-                      ],
+                    child: _buildModernDropdown(
+                      value: widget.selectedYear,
+                      items: widget.availableYears,
+                      onChanged: widget.onYearChanged,
+                      width: 90,
+                      dropdownWidth: 90,
+                      dropdownMaxHeight: 400,
                     ),
                   ),
                 ),
@@ -147,24 +145,32 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildWideDropdown({
+  Widget _buildModernDropdown({
     required String value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
-    required IconData icon,
-    double width = 80,
-    double dropdownWidth = 200,
-    double dropdownMaxHeight = 200,
+    double width = 90,
+    double dropdownWidth = 100,
+    double dropdownMaxHeight = 300,
   }) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Container(
-        height: 32,
-        padding: const EdgeInsets.symmetric(horizontal: 1),
+        height: 35,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton2<String>(
@@ -172,77 +178,86 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
             isExpanded: true,
             onChanged: onChanged,
             items: items.map((item) {
+              final isSelected = item == value;
               return DropdownMenuItem<String>(
                 value: item,
-                child: Row(
-                  children: [
-                    Icon(icon, size: 12, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text(
-                      item,
-                      style: const TextStyle(
-                        color: Colors.white, 
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                        ? Colors.white.withOpacity(0.15)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        item,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.9),
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             }).toList(),
             buttonStyleData: ButtonStyleData(
               width: width,
-              height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              decoration: BoxDecoration( 
-                color: const Color(0xFF1A5DAA),
-                borderRadius: BorderRadius.circular(6),
+              height: 35,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             dropdownStyleData: DropdownStyleData(
               maxHeight: dropdownMaxHeight,
               width: dropdownWidth,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A5DAA), 
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white.withOpacity(0.4)),
+                color: const Color(0xFF1565C0),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              offset: Offset((width - dropdownWidth) / 2, 32),
-              openInterval: const Interval(
-                0.0,
-                0.7,
-                curve: Curves.easeInOut,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              offset: const Offset(0, -4),
+            ),
+            menuItemStyleData: const MenuItemStyleData(
+              height: 40,
+              padding: EdgeInsets.symmetric(horizontal: 8),
             ),
             iconStyleData: const IconStyleData(
-              icon: Icon(Icons.keyboard_arrow_down, size: 12, color: Colors.white),
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: Colors.white,
+              ),
             ),
             selectedItemBuilder: (context) {
               return items.map((item) {
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [ 
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(icon, size: 12, color: Colors.white),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              value,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                return Center(
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3,
                     ),
-                  ],
+                  ),
                 );
               }).toList();
             },

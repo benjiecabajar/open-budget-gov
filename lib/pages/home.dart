@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/list_of_departments.dart';
+import 'package:budget_gov/model/list_of_regions.dart';
 import 'package:budget_gov/service/departments.dart';
+import 'package:budget_gov/service/budgets.dart';
+import 'package:budget_gov/service/funding_sources.dart';
+import 'package:budget_gov/service/list_of_regions_service.dart';
 import 'package:budget_gov/components/header.dart';
-
+import 'package:budget_gov/components/department_cards.dart';
+import 'package:budget_gov/components/regional_budget_cards.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,26 +16,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-/// A data class to hold the fetched budget data for a specific year and type.
-class BudgetData {
+class _BudgetData {
   final List<ListOfAllDepartmets> departments;
   final int totalNepBudget;
   final int totalDepartments;
   final int totalAgencies;
 
-  BudgetData(
-      {required this.departments,
-      required this.totalNepBudget,
-      required this.totalDepartments,
-      required this.totalAgencies});
+  _BudgetData(
+      {required this.departments, required this.totalNepBudget, required this.totalDepartments, required this.totalAgencies});
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedYear = '2025';
-  String _selectedType = 'NEP';
   List<ListOfAllDepartmets> _departments = [];
+  List<ListOfRegions> _regions = [];
   bool _isLoading = false;
+  bool _isRegionsLoading = false;
   String? _errorMessage;
+  String? _regionsErrorMessage;
   int _totalNepBudget = 0;
   int _totalDepartments = 0;
   int _totalAgencies = 0;
@@ -39,29 +42,28 @@ class _HomeScreenState extends State<HomeScreen> {
     '2020', '2021', '2022', '2023', '2024', '2025', '2026',
   ];
 
-  // Cache to store fetched data. The key is a combination of year and type (e.g., "2025-NEP").
-  final Map<String, BudgetData> _cache = {};
+  final Map<String, _BudgetData> _cache = {};
 
   @override
   void initState() {
     super.initState();
     _fetchDepartments();
+    _fetchRegions();
   }
 
   Future<void> _fetchDepartments() async {
-    final cacheKey = '$_selectedYear-$_selectedType';
+    final cacheKey = '$_selectedYear-NEP';
 
-    // 1. Check if data is already in the cache.
     if (_cache.containsKey(cacheKey)) {
+      final cachedData = _cache[cacheKey]!;
       setState(() {
-        final cachedData = _cache[cacheKey]!;
         _departments = cachedData.departments;
         _totalNepBudget = cachedData.totalNepBudget;
         _totalDepartments = cachedData.totalDepartments;
         _totalAgencies = cachedData.totalAgencies;
-        _isLoading = false; // Data is loaded instantly from cache
+        _isLoading = false;
       });
-      return; // Stop execution if we have cached data.
+      return;
     }
 
     setState(() {
@@ -70,30 +72,33 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final departments = await fetchListOfAllDepartments(
-        withBudget: true,
-        year: _selectedYear,
-        type: _selectedType,
-      );
+      final results = await Future.wait([
+        fetchTotalBudget(year: _selectedYear, type: 'NEP'),
+        fetchListOfAllDepartments(
+          withBudget: true,
+          year: _selectedYear,
+          type: 'NEP',
+        ),
+        fetchFundingSourcesHierarchy(),
+      ]);
 
-      final totalBudget = departments.fold<int>(
-          0, (sum, dept) => sum + (dept.totalBudgetPesos));
-      final totalAgencies =
-          departments.fold<int>(0, (sum, dept) => sum + (dept.totalAgencies));
+      final totalBudgetResult = results[0] as dynamic;
+      final departments = results[1] as List<ListOfAllDepartmets>;
+      final yearlyNepBudget = totalBudgetResult.totalInPesos ~/ 2;
 
-      // 2. Store the newly fetched data in the cache.
-      _cache[cacheKey] = BudgetData(
+      _cache[cacheKey] = _BudgetData(
         departments: departments,
-        totalNepBudget: totalBudget,
+        totalNepBudget: yearlyNepBudget,
         totalDepartments: departments.length,
-        totalAgencies: totalAgencies,
+        totalAgencies: departments.fold<int>(
+            0, (sum, dept) => sum + dept.totalAgencies),
       );
 
       setState(() {
         _departments = departments;
-        _totalNepBudget = totalBudget;
+        _totalNepBudget = yearlyNepBudget;
         _totalDepartments = departments.length;
-        _totalAgencies = totalAgencies;
+        _totalAgencies = departments.fold<int>(0, (sum, dept) => sum + dept.totalAgencies);
         _isLoading = false;
       });
     } catch (e) {
@@ -104,17 +109,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchRegions() async {
+    setState(() {
+      _isRegionsLoading = true;
+      _regionsErrorMessage = null;
+    });
+
+    try {
+      final regions = await fetchListOfRegions(
+        year: _selectedYear,
+        type: 'NEP',
+      );
+
+      setState(() {
+        _regions = regions;
+        _isRegionsLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _regionsErrorMessage = e.toString();
+        _isRegionsLoading = false;
+      });
+    }
+  }
+
   void _onYearChanged(String? newValue) {
     if (newValue != null) {
       setState(() => _selectedYear = newValue);
       _fetchDepartments();
-    }
-  }
-
-  void _onTypeChanged(String? newValue) {
-    if (newValue != null) {
-      setState(() => _selectedType = newValue);
-      _fetchDepartments();
+      _fetchRegions();
     }
   }
 
@@ -124,371 +147,359 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: const Color(0xFFF6FAFF),
       appBar: Header(
         selectedYear: _selectedYear,
-        selectedType: _selectedType,
+        selectedType: 'NEP',
         availableYears: _years,
         onYearChanged: _onYearChanged,
-        onTypeChanged: _onTypeChanged,
+        onTypeChanged: (String? newValue) {},
       ),
       body: RefreshIndicator(
         onRefresh: _fetchDepartments,
+        color: const Color(0xFF1565C0),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeroSection(),
+              const SizedBox(height: 14),
+              _buildStatsGrid(),
+              const SizedBox(height: 21),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: DepartmentCards(
+                  isLoading: _isLoading,
+                  errorMessage: _errorMessage,
+                  departments: _departments,
+                  selectedYear: _selectedYear,
+                  selectedType: 'NEP',
+                ),
+              ),
+              const SizedBox(height: 21),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: RegionalBudgetCards(
+                  isLoading: _isRegionsLoading,
+                  errorMessage: _regionsErrorMessage,
+                  regions: _regions,
+                  selectedYear: _selectedYear,
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroSection() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0D47A1),
+            Color(0xFF1565C0),
+            Color(0xFF1976D2),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1565C0).withOpacity(0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                "FISCAL YEAR $_selectedYear",
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Transparency in Every Peso",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -1,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Track Philippine national budget allocations across departments, regions, and programs",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.white.withOpacity(0.9),
+                height: 1.6,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          _buildLargeStatCard(
+            icon: Icons.account_balance_wallet_rounded,
+            title: "Total NEP Budget",
+            value: _formatLargeNumber(_totalNepBudget),
+            subtitle: "National Expenditure Program $_selectedYear",
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildModernStatCard(
+                  icon: Icons.domain_rounded,
+                  title: "Departments",
+                  value: _totalDepartments.toString(),
+                  subtitle: "${_formatNumber(_totalAgencies)} Agencies",
+                  accentColor: const Color(0xFF1565C0),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildModernStatCard(
+                  icon: Icons.location_on_rounded,
+                  title: "Regions",
+                  value: "19",
+                  subtitle: "Geographic coverage",
+                  accentColor: const Color(0xFF1565C0),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLargeStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Gradient gradient,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1565C0).withOpacity(0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildOverviewSection(),
-                const SizedBox(height: 24),
-                const Text(
-                  "Budget by Department",
+                Text(
+                  title,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D47A1),
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 12),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  child: _buildBodyContent(),
+
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildOverviewSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 24),
-        const Text(
-          "Transparency in Every Peso",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 31,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0D47A1),
-            letterSpacing: 0.1,
+  Widget _buildModernStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color accentColor,
+  }) {
+    return Container(
+      height: 150,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-        ),
-        const SizedBox(height: 1),
-        Text(
-          "Explore the Philippine national budget with clarity and accountability."
-          " Track $_selectedYear NEP allocations across departments, regions, and programs.",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey[700],
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 30),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatCard(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      accentColor.withOpacity(0.1),
+                      accentColor.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                icon: Icons.attach_money_rounded,
-                title: "Total NEP Budget",
-                value: _formatLargeNumber(_totalNepBudget),
-                subtitle: "Fiscal Year $_selectedYear",
-                isPrimary: true,
-
+                child: Icon(
+                  icon,
+                  color: accentColor,
+                  size: 24,
+                ),
               ),
-              const SizedBox(height: 10),
-              _buildStatCard(
-                color: Colors.white,
-                icon: Icons.apartment_rounded,
-                title: "Departments",
-                value: _totalDepartments.toString(),
-                subtitle: "${_formatNumber(_totalAgencies)} agencies tracked",
-              ),
-              const SizedBox(height: 10),
-              _buildStatCard(
-                color: Colors.white,
-                icon: Icons.map_rounded,
-                title: "Regions",
-                value: "19",
-                subtitle: "Geographic coverage",
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Active',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-Widget _buildStatCard({
-  Color? color,
-  LinearGradient? gradient,
-  required IconData icon,
-  required String title,
-  required String value,
-  required String subtitle,
-  bool isPrimary = false,
-}) {
-  final Color textColor = isPrimary ? Colors.white : Colors.black87;
-
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-    decoration: BoxDecoration(
-      color: color,
-      gradient: gradient,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: isPrimary 
-              ? const Color(0xFF1565C0).withOpacity(0.25)
-              : Colors.black.withOpacity(0.06),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        // Icon Container
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isPrimary
-                ? Colors.white.withOpacity(0.2)
-                : const Color(0xFF1565C0).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isPrimary
-                  ? Colors.white.withOpacity(0.3)
-                  : const Color(0xFF1565C0).withOpacity(0.2),
-              width: 1.5,
-            ),
-          ),
-          child: Icon(
-            icon,
-            color: isPrimary ? Colors.white : const Color(0xFF1565C0),
-            size: 28,
-          ),
-        ),
-        const SizedBox(width: 18),
-        // Content
-        Expanded(
-          child: Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: textColor.withOpacity(0.75),
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                    ),
+                  ),
+                  const SizedBox(width: 6)  ,
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF0D47A1),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                  letterSpacing: -0.5,
-                  height: 1.0,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: TextStyle(
+                  color: Colors.grey[500],
                   fontSize: 12,
-                  color: textColor.withOpacity(0.65),
                   fontWeight: FontWeight.w500,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
-          ),
-        ),
-        // Optional trailing indicator
-        if (isPrimary)
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.trending_up_rounded,
-              color: Colors.white.withOpacity(0.9),
-              size: 20,
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-  Widget _buildBodyContent() {
-    if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(48.0),
-          child: CircularProgressIndicator(color: Color(0xFF1565C0)),
-        ),
-      );
-    } else if (_errorMessage != null) {
-      return _buildErrorCard();
-    } else if (_departments.isNotEmpty) {
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _departments.length,
-        itemBuilder: (context, index) {
-          final dept = _departments[index];
-          return _buildDepartmentCard(dept);
-        },
-      );
-    } else {
-      return _buildEmptyCard();
-    }
-  }
-
-  Widget _buildDepartmentCard(ListOfAllDepartmets dept) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ExpansionTile(
-        shape: const Border(), // Remove default border when expanded
-        collapsedShape: const Border(), // Remove default border when collapsed
-        title: Text(
-          dept.description,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF1E3A8A),
-          ),
-        ),
-        subtitle: Text(
-          'Code: ${dept.code}',
-          style: const TextStyle(color: Colors.black54, fontSize: 13),
-        ),
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: _buildComparisonDetails(dept),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorCard() => Card(
-        color: Colors.red.shade50,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Error: $_errorMessage',
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildComparisonDetails(ListOfAllDepartmets dept) {
-    final nepBudget = _selectedType == 'NEP' ? dept.totalBudgetPesos : (dept.totalBudgetGaaPesos / (1 + dept.percentDifferenceNepGaa / 100)).round();
-    final gaaBudget = dept.totalBudgetGaaPesos;
-    final difference = gaaBudget - nepBudget;
-    final change = dept.percentDifferenceNepGaa;
-
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        _buildInfoRow(
-          'NEP $_selectedYear',
-          _formatLargeNumber(nepBudget),
-        ),
-        _buildInfoRow(
-          'GAA $_selectedYear',
-          _formatLargeNumber(gaaBudget),
-        ),
-        const Divider(height: 24),
-        _buildInfoRow(
-          'Insertions',
-          '${difference >= 0 ? '+' : ''}${_formatLargeNumber(difference)}',
-          valueColor: difference >= 0 ? Colors.green.shade700 : Colors.red.shade700,
-        ),
-        _buildInfoRow(
-          'Change',
-          '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
-          valueColor: change >= 0 ? Colors.green.shade700 : Colors.red.shade700,
-        ),
-        const Divider(height: 24),
-        _buildInfoRow(
-          'Total Agencies',
-          '${dept.totalAgencies}',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyCard() => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'No departments found',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ),
-      );
-
-  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.black54, fontSize: 13)),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? Colors.black87,
-            ),
           ),
         ],
       ),
