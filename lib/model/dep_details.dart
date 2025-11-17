@@ -30,6 +30,17 @@ class DepartmentDetails {
       statistics: Statistics.fromJson(json['statistics'] as Map<String, dynamic>),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'abbreviation': abbreviation,
+      'agencies': agencies.map((agency) => agency.toJson()).toList(),
+      'operatingUnitClasses': operatingUnitClasses,
+      'statistics': statistics.toJson(),
+    };
+  }
 }
 
 class Agency {
@@ -49,6 +60,14 @@ class Agency {
       description: json['description'] as String,
       uacsCode: json['uacsCode'] as String,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'uacsCode': uacsCode,
+    };
   }
 }
 
@@ -78,5 +97,16 @@ class Statistics {
       totalExpenseClassifications: json['totalExpenseClassifications'] as int,
       totalProjects: json['totalProjects'] as int,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'totalAgencies': totalAgencies,
+      'totalOperatingUnitClasses': totalOperatingUnitClasses,
+      'totalRegions': totalRegions,
+      'totalFundingSources': totalFundingSources,
+      'totalExpenseClassifications': totalExpenseClassifications,
+      'totalProjects': totalProjects,
+    };
   }
 }

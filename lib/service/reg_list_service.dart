@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:budget_gov/model/list_of_regions.dart';
-import 'package:budget_gov/service/departments.dart';
+import 'package:budget_gov/model/reg_list.dart';
+import 'package:budget_gov/service/dep_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 

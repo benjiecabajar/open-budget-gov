@@ -9,6 +9,8 @@ class ListOfAllDepartmets {
   final double percentDifferenceNepGaa;
   final int totalAgencies;
   final int totalProjects;
+  final int totalRegions;
+
 
   ListOfAllDepartmets({
     required this.code,
@@ -21,6 +23,7 @@ class ListOfAllDepartmets {
     required this.percentDifferenceNepGaa,
     required this.totalAgencies,
     required this.totalProjects,
+    required this.totalRegions,
   });
 
   factory ListOfAllDepartmets.fromJson(Map<String, dynamic> json) {
@@ -38,7 +41,8 @@ class ListOfAllDepartmets {
           ? (json['percentDifferenceNepGaa'] as num).toDouble()
           : 0.0,
       totalAgencies: json['totalAgencies'] as int,
-      totalProjects: json['totalProjects'] as int? ?? 0, 
+      totalProjects: json['totalProjects'] as int? ?? 0,
+      totalRegions: json['totalRegions'] as int? ?? 0, 
     );
   }
 

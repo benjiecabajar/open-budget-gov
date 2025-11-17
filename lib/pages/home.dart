@@ -1,13 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:budget_gov/model/list_of_departments.dart';
-import 'package:budget_gov/model/list_of_regions.dart';
-import 'package:budget_gov/service/departments.dart';
-import 'package:budget_gov/service/budgets.dart';
-import 'package:budget_gov/service/funding_sources.dart';
-import 'package:budget_gov/service/list_of_regions_service.dart';
+import 'package:budget_gov/model/dep_list.dart';
+import 'package:budget_gov/service/dep_service.dart';
+import 'package:budget_gov/model/reg_list.dart';
+import 'package:budget_gov/service/budgets_service.dart';
+import 'package:budget_gov/service/fund_sources_service.dart';
+import 'package:budget_gov/service/reg_list_service.dart';
+import 'package:budget_gov/service/dep_details_service.dart';
 import 'package:budget_gov/components/header.dart';
-import 'package:budget_gov/components/department_cards.dart';
-import 'package:budget_gov/components/regional_budget_cards.dart';
+import 'package:budget_gov/components/dep_cards.dart';
+import 'package:budget_gov/components/reg_cards.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +27,26 @@ class _BudgetData {
 
   _BudgetData(
       {required this.departments, required this.totalNepBudget, required this.totalDepartments, required this.totalAgencies});
+
+  factory _BudgetData.fromJson(Map<String, dynamic> json) {
+    return _BudgetData(
+      departments: (json['departments'] as List)
+          .map((i) => ListOfAllDepartmets.fromJson(i))
+          .toList(),
+      totalNepBudget: json['totalNepBudget'],
+      totalDepartments: json['totalDepartments'],
+      totalAgencies: json['totalAgencies'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'departments': departments.map((d) => d.toJson()).toList(),
+      'totalNepBudget': totalNepBudget,
+      'totalDepartments': totalDepartments,
+      'totalAgencies': totalAgencies,
+    };
+  }
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -37,18 +60,43 @@ class _HomeScreenState extends State<HomeScreen> {
   int _totalNepBudget = 0;
   int _totalDepartments = 0;
   int _totalAgencies = 0;
+  int _totalRegions = 0;
 
   final List<String> _years = [
     '2020', '2021', '2022', '2023', '2024', '2025', '2026',
   ];
 
   final Map<String, _BudgetData> _cache = {};
+  final Map<String, List<ListOfRegions>> _regionsCache = {};
 
   @override
   void initState() {
     super.initState();
-    _fetchDepartments();
-    _fetchRegions();
+    _loadCacheAndFetchData();
+  }
+
+  Future<void> _loadCacheAndFetchData() async {
+    await _loadCachesFromDisk();
+    // Initial fetch for the default year
+    if (mounted) {
+      _fetchDepartments();
+      _fetchRegions();
+    }
+  }
+
+  Future<void> _loadCachesFromDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final departmentsCacheString = prefs.getString('departments_cache');
+    if (departmentsCacheString != null) {
+      final Map<String, dynamic> decodedMap = jsonDecode(departmentsCacheString);
+      _cache.addAll(decodedMap.map((key, value) => MapEntry(key, _BudgetData.fromJson(value))));
+    }
+
+    final regionsCacheString = prefs.getString('regions_cache');
+    if (regionsCacheString != null) {
+      final Map<String, dynamic> decodedMap = jsonDecode(regionsCacheString);
+      _regionsCache.addAll(decodedMap.map((key, value) => MapEntry(key, (value as List).map((i) => ListOfRegions.fromJson(i)).toList())));
+    }
   }
 
   Future<void> _fetchDepartments() async {
@@ -63,6 +111,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _totalAgencies = cachedData.totalAgencies;
         _isLoading = false;
       });
+
+      // Even with cached list, we might need to pre-fetch details if they are missing.
+      _prefetchDepartmentDetails(cachedData.departments);
+
       return;
     }
 
@@ -75,11 +127,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         fetchTotalBudget(year: _selectedYear, type: 'NEP'),
         fetchListOfAllDepartments(
-          withBudget: true,
+          withBudget: true, // This seems correct
           year: _selectedYear,
           type: 'NEP',
         ),
-        fetchFundingSourcesHierarchy(),
+        // The fetchFundingSourcesHierarchy() call was removed as it's better handled on the details page.
       ]);
 
       final totalBudgetResult = results[0] as dynamic;
@@ -93,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
         totalAgencies: departments.fold<int>(
             0, (sum, dept) => sum + dept.totalAgencies),
       );
+      _saveDepartmentsCacheToDisk();
 
       setState(() {
         _departments = departments;
@@ -101,6 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _totalAgencies = departments.fold<int>(0, (sum, dept) => sum + dept.totalAgencies);
         _isLoading = false;
       });
+
+      // Pre-fetch details for all departments in the background
+      _prefetchDepartmentDetails(departments);
     } catch (e) {
       setState(() {
         _errorMessage = e.toString();
@@ -109,7 +165,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _prefetchDepartmentDetails(List<ListOfAllDepartmets> departments) async {
+    final prefs = await SharedPreferences.getInstance();
+    final detailsCacheString = prefs.getString('department_details_cache');
+    Map<String, dynamic> detailsCache = detailsCacheString != null ? jsonDecode(detailsCacheString) : {};
+
+    List<Future> prefetchFutures = [];
+
+    for (var dept in departments) {
+      final cacheKey = '${dept.code}-$_selectedYear';
+      if (!detailsCache.containsKey(cacheKey)) {
+        prefetchFutures.add(
+          fetchDepartmentDetails(code: dept.code, year: _selectedYear).then((details) {
+            detailsCache[cacheKey] = details.toJson();
+          }).catchError((e) {
+            // Silently fail or log the error, so it doesn't disrupt the UI
+            // print('Failed to prefetch details for ${dept.code}: $e');
+          })
+        );
+      }
+    }
+
+    if (prefetchFutures.isNotEmpty) {
+      // Wait for all fetches to complete
+      await Future.wait(prefetchFutures);
+      // Save the updated cache to disk
+      final String encodedDetails = jsonEncode(detailsCache);
+      await prefs.setString('department_details_cache', encodedDetails);
+      // print('Department details cache updated.');
+    }
+  }
+
+  Future<void> _saveDepartmentsCacheToDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedMap = jsonEncode(_cache.map((key, value) => MapEntry(key, value.toJson())));
+    await prefs.setString('departments_cache', encodedMap);
+  }
+
   Future<void> _fetchRegions() async {
+    final cacheKey = '$_selectedYear-NEP';
+
+    if (_regionsCache.containsKey(cacheKey)) {
+      final cachedRegions = _regionsCache[cacheKey]!;
+      setState(() {
+        _regions = cachedRegions;
+        _totalRegions = cachedRegions.length;
+        _isRegionsLoading = false;
+      });
+      return;
+    }
     setState(() {
       _isRegionsLoading = true;
       _regionsErrorMessage = null;
@@ -121,8 +225,11 @@ class _HomeScreenState extends State<HomeScreen> {
         type: 'NEP',
       );
 
+      _regionsCache[cacheKey] = regions;
+      _saveRegionsCacheToDisk();
       setState(() {
         _regions = regions;
+        _totalRegions = regions.length;
         _isRegionsLoading = false;
       });
     } catch (e) {
@@ -133,11 +240,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _saveRegionsCacheToDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedMap = jsonEncode(_regionsCache.map((key, value) => MapEntry(key, value.map((r) => r.toJson()).toList())));
+    await prefs.setString('regions_cache', encodedMap);
+  }
+
   void _onYearChanged(String? newValue) {
-    if (newValue != null) {
+    // Only refetch if the year has actually changed.
+    if (newValue != null && newValue != _selectedYear) { 
       setState(() => _selectedYear = newValue);
-      _fetchDepartments();
-      _fetchRegions();
+      _refreshData();
+    } else if (newValue != null) {
+      // Allow refreshing even if the same year is selected again.
+      _refreshData();
     }
   }
 
@@ -153,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTypeChanged: (String? newValue) {},
       ),
       body: RefreshIndicator(
-        onRefresh: _fetchDepartments,
+        onRefresh: _refreshData, // Hook up the refresh logic
         color: const Color(0xFF1565C0),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -190,6 +306,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    // This function can be called by both pull-to-refresh and year change. It runs fetches concurrently.
+    await Future.wait([
+      _fetchDepartments(),
+      _fetchRegions(),
+    ]);
   }
 
   Widget _buildHeroSection() {
@@ -299,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _buildModernStatCard(
                   icon: Icons.location_on_rounded,
                   title: "Regions",
-                  value: "19",
+                  value: _totalRegions.toString(),
                   subtitle: "Geographic coverage",
                   accentColor: const Color(0xFF1565C0),
                 ),

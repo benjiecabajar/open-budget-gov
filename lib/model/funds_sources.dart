@@ -13,6 +13,13 @@ class FundingSourcesResponse {
       meta: Meta.fromJson(json['meta'] as Map<String, dynamic>),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'data': data.map((e) => e.toJson()).toList(),
+      'meta': meta.toJson(),
+    };
+  }
 }
 
 class FundingFund {
@@ -32,6 +39,14 @@ class FundingFund {
           .map((e) => FundingSource.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'fundingSources': fundingSources.map((e) => e.toJson()).toList(),
+    };
   }
 }
 
@@ -75,6 +90,20 @@ class FundingSource {
       authorizationCode: json['authorizationCode'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'fundCategory': fundCategory?.toJson(),
+      'financingSource': financingSource.toJson(),
+      'uacsCode': uacsCode,
+      'description': description,
+      'authorization': authorization.toJson(),
+      'financingSourceCode': financingSourceCode,
+      'fundCategoryCode': fundCategoryCode,
+      'fundClusterCode': fundClusterCode,
+      'authorizationCode': authorizationCode,
+    };
+  }
 }
 
 class FundCategory {
@@ -88,6 +117,13 @@ class FundCategory {
       uacsCode: json['uacsCode'] as String?,
       description: json['description'] as String?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'uacsCode': uacsCode,
+      'description': description,
+    };
   }
 }
 
@@ -103,6 +139,13 @@ class FinancingSource {
       code: json['code'] as String,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'code': code,
+    };
+  }
 }
 
 class Authorization {
@@ -116,6 +159,13 @@ class Authorization {
       description: json['description'] as String,
       code: json['code'] as String,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'code': code,
+    };
   }
 }
 
@@ -139,5 +189,14 @@ class Meta {
       totalFinancingSources: json['totalFinancingSources'] as int,
       totalAuthorizations: json['totalAuthorizations'] as int,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'totalFundClusters': totalFundClusters,
+      'totalFundingSources': totalFundingSources,
+      'totalFinancingSources': totalFinancingSources,
+      'totalAuthorizations': totalAuthorizations,
+    };
   }
 }

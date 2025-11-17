@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:budget_gov/model/list_of_departments.dart';
-import 'package:budget_gov/pages/department_details_page.dart';
+import 'package:budget_gov/model/dep_list.dart';
+import 'package:budget_gov/pages/dep_details_page.dart';
 
 class DepartmentCards extends StatelessWidget {
   final bool isLoading;

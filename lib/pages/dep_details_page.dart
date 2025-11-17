@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:budget_gov/model/details_of_departments.dart';
-import 'package:budget_gov/service/department_details.dart';
-import 'package:budget_gov/model/sources_of_funds.dart';
-import 'package:budget_gov/service/funding_sources.dart';
+import 'package:budget_gov/model/dep_details.dart';
+import 'package:budget_gov/service/dep_details_service.dart';
+import 'package:budget_gov/model/funds_sources.dart';
+import 'package:budget_gov/service/fund_sources_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class DepartmentDetailsPage extends StatefulWidget {
@@ -24,6 +26,9 @@ class DepartmentDetailsPage extends StatefulWidget {
 }
 
 class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
+  static final Map<String, DepartmentDetails> _detailsCache = {};
+  static final Map<String, List<FundingFund>> _fundingCache = {};
+
   DepartmentDetails? _departmentDetails;
   bool _isLoading = true;
   List<FundingFund> _fundingFunds = []; // Changed from FundingFund to FundingFund
@@ -35,32 +40,80 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialDetails != null) {
-      _departmentDetails = widget.initialDetails;
-      _isLoading = false;
-      // Fetch other data that wasn't pre-cached
-      _fetchSecondaryDetails();
-    } else {
-      _fetchDetails();
+    _loadCacheAndFetchData();
+  }
+
+  Future<void> _loadCacheAndFetchData() async {
+    await _loadCacheFromDisk();
+    _fetchDetails();
+  }
+
+  Future<void> _loadCacheFromDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final detailsCacheString = prefs.getString('department_details_cache');
+    if (detailsCacheString != null) {
+      final Map<String, dynamic> decodedMap = jsonDecode(detailsCacheString);
+      _detailsCache.addAll(decodedMap.map((key, value) => MapEntry(key, DepartmentDetails.fromJson(value))));
+    }
+
+    final fundingCacheString = prefs.getString('funding_sources_cache_global');
+    if (fundingCacheString != null) {
+      final Map<String, dynamic> decodedMap = jsonDecode(fundingCacheString);
+      _fundingCache.addAll(decodedMap.map((key, value) => MapEntry(key, (value as List).map((i) => FundingFund.fromJson(i)).toList())));
     }
   }
 
   Future<void> _fetchDetails() async {
+    final detailsCacheKey = '${widget.departmentCode}-${widget.year}';
+    const fundingCacheKey = 'all_funding_sources'; // Global key for funding sources
+
+    // Use cached data if available
+    if (_detailsCache.containsKey(detailsCacheKey) && _fundingCache.containsKey(fundingCacheKey)) {
+      if (mounted) {
+        setState(() {
+          _departmentDetails = _detailsCache[detailsCacheKey];
+          _fundingFunds = _fundingCache[fundingCacheKey]!;
+          _isLoading = false;
+          _isFundingFundsLoading = false;
+        });
+      }
+      return;
+    }
+
+    // If not cached, show loading and fetch from network
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _isFundingFundsLoading = true;
+        _errorMessage = null;
+      });
+    }
+
     try {
       final results = await Future.wait([
-        fetchDepartmentDetails(code: widget.departmentCode, year: widget.year),
-        fetchFundingSourcesHierarchy(),
-       
+        // Only fetch what's not in the cache
+        _detailsCache.containsKey(detailsCacheKey)
+            ? Future.value(_detailsCache[detailsCacheKey])
+            : fetchDepartmentDetails(code: widget.departmentCode, year: widget.year),
+        _fundingCache.containsKey(fundingCacheKey)
+            ? Future.value(_fundingCache[fundingCacheKey])
+            : fetchFundingSourcesHierarchy(),
       ]);
+
+      final fetchedDetails = results[0] as DepartmentDetails;
+      final fetchedFunding = results[1] as List<FundingFund>;
+
+      // Update cache and save to disk
+      _detailsCache[detailsCacheKey] = fetchedDetails;
+      _fundingCache[fundingCacheKey] = fetchedFunding;
+      _saveCacheToDisk();
 
       if (mounted) {
         setState(() {
-          _departmentDetails = results[0] as DepartmentDetails;
+          _departmentDetails = fetchedDetails;
+          _fundingFunds = fetchedFunding;
           _isLoading = false;
-          _fundingFunds = results[1] as List<FundingFund>;
           _isFundingFundsLoading = false;
-        
-
         });
       }
     } catch (e) {
@@ -69,36 +122,18 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
           _errorMessage = e.toString();
           _isLoading = false;
           _isFundingFundsLoading = false;
-
         });
       }
     }
   }
 
-  Future<void> _fetchSecondaryDetails() async {
-    try {
- //     final results = await Future.wait
- ([
-        fetchFundingSourcesHierarchy(),
-   
-      ]);
-      if (mounted) {
-        setState(() {
-       //   _fundingFunds = results[0] as List<FundingFund>;
-          _isFundingFundsLoading = false;
+  Future<void> _saveCacheToDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedDetails = jsonEncode(_detailsCache.map((key, value) => MapEntry(key, value.toJson())));
+    await prefs.setString('department_details_cache', encodedDetails);
 
-   
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isFundingFundsLoading = false;
-
-        });
-      }
-    }
+    final String encodedFunding = jsonEncode(_fundingCache.map((key, value) => MapEntry(key, value.map((e) => e.toJson()).toList())));
+    await prefs.setString('funding_sources_cache_global', encodedFunding);
   }
 
   @override

@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'package:budget_gov/model/expense_categories.dart';
-import 'package:budget_gov/service/departments.dart'; // For getLocalNetworkIP
+import 'package:budget_gov/model/funds_sources.dart';
+import 'package:budget_gov/service/dep_service.dart'; // For getLocalNetworkIP
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-Future<List<ExpenseCategory>> fetchExpenseCategories() async {
+Future<List<FundingFund>> fetchFundingSourcesHierarchy() async {
   http.Response response;
-  const path = '/api/v1/expense-categories';
+  const path = '/api/v1/funding-sources/hierarchy';
 
   try {
     String? ip;
@@ -28,14 +28,14 @@ Future<List<ExpenseCategory>> fetchExpenseCategories() async {
       final fallbackUri = Uri.parse('http://10.0.2.2:3000$path');
       response = await http.get(fallbackUri);
     } else {
-      throw Exception('Failed to load expense categories: $e');
+      throw Exception('Failed to load funding sources hierarchy: $e');
     }
   }
 
   if (response.statusCode == 200) {
-    final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
-    return data.map((json) => ExpenseCategory.fromJson(json as Map<String, dynamic>)).toList();
+    final Map<String, dynamic> data = jsonDecode(response.body) as Map<String, dynamic>;
+    return FundingSourcesResponse.fromJson(data).data;
   } else {
-    throw Exception('Failed to load expense categories: ${response.statusCode}');
+    throw Exception('Failed to load funding sources hierarchy: ${response.statusCode}');
   }
 }

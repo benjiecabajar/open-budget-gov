@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:budget_gov/model/details_of_departments.dart';
-import 'package:budget_gov/service/departments.dart';
+import 'package:budget_gov/model/dep_details.dart';
+import 'package:budget_gov/service/dep_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 

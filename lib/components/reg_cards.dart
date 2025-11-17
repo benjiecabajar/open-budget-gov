@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:budget_gov/model/list_of_regions.dart';
+import 'package:budget_gov/model/reg_list.dart';
 
 class RegionalBudgetCards extends StatelessWidget {
   final bool isLoading;
@@ -103,6 +103,69 @@ class RegionalBudgetCards extends StatelessWidget {
     final isPositive = change >= 0;
     final changeColor = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
 
+    String description;
+    switch (region.code) {
+      case '01':
+        description = 'Region I - Ilocos';
+        break;
+      case '02':
+        description = 'Region II - Cagayan Valley';
+        break;
+      case '03':
+        description = 'Region II (Cagayan Valley)';
+        break;
+      case '04':
+        description = 'Region IV-A - CALABARZON';
+        break;
+      case '05':
+        description = 'Region V - Bicol';
+        break;
+      case '06':
+        description = 'Region VI - Western Visayas';
+        break;
+      case '07':
+        description = 'Region VII - Central Visayas';
+        break;
+      case '08':
+        description = 'Region VIII - Eastern Visayas';
+        break;
+      case '09':
+        description = 'Region IX - Zamboanga Peninsula';
+        break;
+      case '10':
+        description = 'Region X - Northern Mindanao';
+        break;
+      case '11':
+        description = 'Region XI - Davao';
+        break;
+      case '12':
+        description = 'Region XII - SOCCSKSARGEN';
+        break;
+      case '13':
+        description = 'National Capital Region (NCR)';
+        break;
+      case '14':
+        description = 'Cordillera Administrative Region (CAR)';
+        break;
+      case '15':
+        description = 'Autonomous Region in Muslim Mindanao (ARMM)';
+        break;
+      case '16':
+        description = 'Region XIII - Caraga';
+        break;
+      case '17':
+        description = 'Region IVB - MIMAROPA';
+        break;
+      case '18':
+        description = 'Negros Island Region';
+        break;
+      case '19':
+        description = 'Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)';
+        break;
+      default:
+        description = region.description;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -125,7 +188,7 @@ class RegionalBudgetCards extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            region.description,
+            description,
             style: const TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 15,
