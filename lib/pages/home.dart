@@ -1,10 +1,10 @@
 import 'dart:convert';
+import 'package:budget_gov/model/dep_details.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_list.dart';
 import 'package:budget_gov/service/dep_service.dart';
 import 'package:budget_gov/model/reg_list.dart';
 import 'package:budget_gov/service/budgets_service.dart';
-import 'package:budget_gov/service/fund_sources_service.dart';
 import 'package:budget_gov/service/reg_list_service.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
 import 'package:budget_gov/components/header.dart';
@@ -24,9 +24,10 @@ class _BudgetData {
   final int totalNepBudget;
   final int totalDepartments;
   final int totalAgencies;
+  int totalProjects;
 
   _BudgetData(
-      {required this.departments, required this.totalNepBudget, required this.totalDepartments, required this.totalAgencies});
+      {required this.departments, required this.totalNepBudget, required this.totalDepartments, required this.totalAgencies, required this.totalProjects});
 
   factory _BudgetData.fromJson(Map<String, dynamic> json) {
     return _BudgetData(
@@ -36,6 +37,7 @@ class _BudgetData {
       totalNepBudget: json['totalNepBudget'],
       totalDepartments: json['totalDepartments'],
       totalAgencies: json['totalAgencies'],
+      totalProjects: json['totalProjects'] as int? ?? 0,
     );
   }
 
@@ -45,6 +47,7 @@ class _BudgetData {
       'totalNepBudget': totalNepBudget,
       'totalDepartments': totalDepartments,
       'totalAgencies': totalAgencies,
+      'totalProjects': totalProjects,
     };
   }
 }
@@ -59,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _regionsErrorMessage;
   int _totalNepBudget = 0;
   int _totalDepartments = 0;
-  int _totalAgencies = 0;
+  int _totalProjects = 0;
   int _totalRegions = 0;
 
   final List<String> _years = [
@@ -77,7 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadCacheAndFetchData() async {
     await _loadCachesFromDisk();
-    // Initial fetch for the default year
     if (mounted) {
       _fetchDepartments();
       _fetchRegions();
@@ -108,12 +110,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _departments = cachedData.departments;
         _totalNepBudget = cachedData.totalNepBudget;
         _totalDepartments = cachedData.totalDepartments;
-        _totalAgencies = cachedData.totalAgencies;
+        _totalProjects = cachedData.totalProjects;
         _isLoading = false;
       });
 
       // Even with cached list, we might need to pre-fetch details if they are missing.
       _prefetchDepartmentDetails(cachedData.departments);
+
+      // Also, fetch the total projects from the details cache
+      _calculateTotalProjectsFromDetails(cachedData.departments);
 
       return;
     }
@@ -126,16 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final results = await Future.wait([
         fetchTotalBudget(year: _selectedYear, type: 'NEP'),
-        fetchListOfAllDepartments(
-          withBudget: true, // This seems correct
-          year: _selectedYear,
-          type: 'NEP',
-        ),
-        // The fetchFundingSourcesHierarchy() call was removed as it's better handled on the details page.
+        fetchListOfAllDepartments(withBudget: true, year: _selectedYear, type: 'NEP')
       ]);
 
       final totalBudgetResult = results[0] as dynamic;
-      final departments = results[1] as List<ListOfAllDepartmets>;
+      final departments = results[1] as List<ListOfAllDepartmets>; // Cast to List<ListOfAllDepartmets>
       final yearlyNepBudget = totalBudgetResult.totalInPesos ~/ 2;
 
       _cache[cacheKey] = _BudgetData(
@@ -144,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
         totalDepartments: departments.length,
         totalAgencies: departments.fold<int>(
             0, (sum, dept) => sum + dept.totalAgencies),
+        totalProjects: 0, // Initialize with 0, will be updated by background fetch
       );
       _saveDepartmentsCacheToDisk();
 
@@ -151,7 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _departments = departments;
         _totalNepBudget = yearlyNepBudget;
         _totalDepartments = departments.length;
-        _totalAgencies = departments.fold<int>(0, (sum, dept) => sum + dept.totalAgencies);
         _isLoading = false;
       });
 
@@ -162,6 +162,39 @@ class _HomeScreenState extends State<HomeScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _calculateTotalProjectsFromDetails(List<ListOfAllDepartmets> departments) async {
+    final prefs = await SharedPreferences.getInstance();
+    final detailsCacheString = prefs.getString('department_details_cache');
+    Map<String, dynamic> detailsCache = detailsCacheString != null ? jsonDecode(detailsCacheString) : {};
+
+    int totalProjects = 0;
+    bool allDetailsCached = true;
+
+    for (var dept in departments) {
+      final cacheKey = '${dept.code}-$_selectedYear';
+      if (detailsCache.containsKey(cacheKey)) {
+        final details = DepartmentDetails.fromJson(detailsCache[cacheKey] as Map<String, dynamic>);
+        totalProjects += details.statistics.totalProjects;
+      } else {
+        allDetailsCached = false;
+      }
+    }
+
+    // If all details were in the cache, we have the final count.
+    // If not, the pre-fetch will eventually get them, and this will be recalculated on next load.
+    if (allDetailsCached && mounted) {
+      setState(() {
+        _totalProjects = totalProjects;
+      });
+      // Optionally, update the main cache as well
+      final cacheKey = '$_selectedYear-NEP';
+      if (_cache.containsKey(cacheKey)) {
+        _cache[cacheKey]!.totalProjects = totalProjects;
+        _saveDepartmentsCacheToDisk();
+      }
     }
   }
 
@@ -176,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final cacheKey = '${dept.code}-$_selectedYear';
       if (!detailsCache.containsKey(cacheKey)) {
         prefetchFutures.add(
-          fetchDepartmentDetails(code: dept.code, year: _selectedYear).then((details) {
+          fetchDepartmentDetails(code: dept.code, year: _selectedYear, combineBudgets: false).then((details) {
             detailsCache[cacheKey] = details.toJson();
           }).catchError((e) {
             // Silently fail or log the error, so it doesn't disrupt the UI
@@ -192,6 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
       // Save the updated cache to disk
       final String encodedDetails = jsonEncode(detailsCache);
       await prefs.setString('department_details_cache', encodedDetails);
+      
+      // Now that fetching is done, recalculate the total projects
+      _calculateTotalProjectsFromDetails(departments);
       // print('Department details cache updated.');
     }
   }
@@ -345,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
                   width: 1,
@@ -414,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.domain_rounded,
                   title: "Departments",
                   value: _totalDepartments.toString(),
-                  subtitle: "${_formatNumber(_totalAgencies)} Agencies",
+                  subtitle: "${_formatNumber(_totalProjects)} Projects",
                   accentColor: const Color(0xFF1565C0),
                 ),
               ),
@@ -446,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1565C0).withOpacity(0.4),
@@ -461,7 +497,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
@@ -521,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: accentColor.withOpacity(0.15),
@@ -546,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       accentColor.withOpacity(0.05),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(7),
                 ),
                 child: Icon(
                   icon,
@@ -558,7 +594,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

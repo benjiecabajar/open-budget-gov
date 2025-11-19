@@ -159,10 +159,10 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
         height: 35,
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(5),
           border: Border.all(
             color: Colors.white.withOpacity(0.3),
-            width: 1.5,
+            width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
@@ -187,7 +187,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
                     color: isSelected 
                         ? Colors.white.withOpacity(0.15)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -219,10 +219,10 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
               width: dropdownWidth,
               decoration: BoxDecoration(
                 color: const Color(0xFF1565C0),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
-                  width: 1.5,
+                  width: 1.2,
                 ),
                 boxShadow: [
                   BoxShadow(

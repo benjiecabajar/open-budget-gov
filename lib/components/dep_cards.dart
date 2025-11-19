@@ -63,7 +63,7 @@ class DepartmentCards extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1565C0).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Center(
                   child: CircularProgressIndicator(
@@ -112,7 +112,7 @@ class DepartmentCards extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: const Color(0xFF1565C0).withOpacity(0.1),
           width: 1,
@@ -128,26 +128,26 @@ class DepartmentCards extends StatelessWidget {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           shape: const Border(),
           collapsedShape: const Border(),
           leading: Container(
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   const Color(0xFF1565C0).withOpacity(0.15),
                   const Color(0xFF1E88E5).withOpacity(0.1),
                 ],
-              ),
-              borderRadius: BorderRadius.circular(14),
+              ), 
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.corporate_fare_rounded,
               color: Color(0xFF1565C0),
-              size: 24,
+              size: 20,
             ),
           ),
           title: Text(
@@ -168,12 +168,12 @@ class DepartmentCards extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1565C0).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    dept.code,
+                    "code: ${dept.code}",
                     style: const TextStyle(
-                      color: Color(0xFF1565C0),
+                      color: Color(0xFF1565C0), 
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
@@ -198,7 +198,7 @@ class DepartmentCards extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFF1565C0).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(7),
             ),
             child: const Icon(
               Icons.keyboard_arrow_down_rounded,
@@ -207,13 +207,13 @@ class DepartmentCards extends StatelessWidget {
             ),
           ),
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildBudgetCards(nepBudget, gaaBudget),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildInsertionsCard(difference, change),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildAgenciesCard(dept.totalAgencies),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildViewDetailsButton(context, dept),
           ],
         ),
@@ -226,7 +226,7 @@ class DepartmentCards extends StatelessWidget {
       children: [
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -234,7 +234,7 @@ class DepartmentCards extends StatelessWidget {
                   const Color(0xFF1E88E5).withOpacity(0.05),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: const Color(0xFF1565C0).withOpacity(0.15),
                 width: 1,
@@ -258,19 +258,19 @@ class DepartmentCards extends StatelessWidget {
                       'NEP $selectedYear',
                       style: TextStyle(
                         color: Colors.grey[600],
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   _formatLargeNumber(nepBudget),
                   style: const TextStyle(
                     color: Color(0xFF1565C0),
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
@@ -279,10 +279,10 @@ class DepartmentCards extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -290,7 +290,7 @@ class DepartmentCards extends StatelessWidget {
                   const Color(0xFF42A5F5).withOpacity(0.05),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: const Color(0xFF1E88E5).withOpacity(0.15),
                 width: 1,
@@ -314,19 +314,19 @@ class DepartmentCards extends StatelessWidget {
                       'GAA $selectedYear',
                       style: TextStyle(
                         color: Colors.grey[600],
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   _formatLargeNumber(gaaBudget),
                   style: const TextStyle(
                     color: Color(0xFF1E88E5),
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
@@ -345,10 +345,10 @@ class DepartmentCards extends StatelessWidget {
     final bgColor = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: bgColor.withOpacity(0.2),
           width: 1,
@@ -357,18 +357,18 @@ class DepartmentCards extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: bgColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
               color: color,
-              size: 22,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,7 +377,7 @@ class DepartmentCards extends StatelessWidget {
                   'Budget Insertions',
                   style: TextStyle(
                     color: Colors.grey[700],
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
                   ),
@@ -389,12 +389,12 @@ class DepartmentCards extends StatelessWidget {
                       '${difference >= 0 ? '+' : ''}${_formatLargeNumber(difference)}',
                       style: TextStyle(
                         color: color,
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
@@ -405,7 +405,7 @@ class DepartmentCards extends StatelessWidget {
                         '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
                         style: TextStyle(
                           color: color,
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -422,10 +422,10 @@ class DepartmentCards extends StatelessWidget {
 
   Widget _buildAgenciesCard(int totalAgencies) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF1565C0).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: const Color(0xFF1565C0).withOpacity(0.1),
           width: 1,
@@ -434,18 +434,18 @@ class DepartmentCards extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFF1565C0).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.business_rounded,
               color: Color(0xFF1565C0),
-              size: 20,
+              size: 18,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -453,7 +453,7 @@ class DepartmentCards extends StatelessWidget {
                 'Total Agencies',
                 style: TextStyle(
                   color: Colors.grey[600],
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
                 ),
@@ -463,7 +463,7 @@ class DepartmentCards extends StatelessWidget {
                 '$totalAgencies',
                 style: const TextStyle(
                   color: Color(0xFF1565C0),
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
                 ),
@@ -481,7 +481,7 @@ class DepartmentCards extends StatelessWidget {
         gradient: const LinearGradient(
           colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1565C0).withOpacity(0.3),
@@ -508,9 +508,9 @@ class DepartmentCards extends StatelessWidget {
           foregroundColor: Colors.white,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
           ),
-          minimumSize: const Size(double.infinity, 48),
+          minimumSize: const Size(double.infinity, 44),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         child: const Row(
@@ -519,12 +519,12 @@ class DepartmentCards extends StatelessWidget {
             Text(
               'View Full Details',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.3,
               ),
             ),
-            SizedBox(width: 8),
+            SizedBox(width: 6),
             Icon(Icons.arrow_forward_rounded, size: 18),
           ],
         ),
@@ -537,7 +537,7 @@ class DepartmentCards extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: Colors.red.shade200,
             width: 1,
@@ -549,7 +549,7 @@ class DepartmentCards extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.red.shade100,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.error_outline_rounded,
@@ -595,7 +595,7 @@ class DepartmentCards extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   Icons.inbox_rounded,
