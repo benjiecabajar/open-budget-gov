@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:budget_gov/model/dep_details.dart';
+import 'package:budget_gov/model/funds_sources.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,40 +46,74 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
 
   // Create maps for quick lookups
   final nepAgencyMap = {for (var agency in nepDetails.agencies) agency.uacsCode: agency};
-  final nepOuMap = {for (var ou in nepDetails.operatingUnits) ou.uacsCode: ou};
+  final nepFundingSourceMap = {for (var fs in nepDetails.fundingSources) fs.uacsCode: fs};
+  final nepOuMap = {for (var ou in nepDetails.operatingUnitClasses) ou.code: ou};
 
   // Merge Agency budgets
   final combinedAgencies = gaaDetails.agencies.map((gaaAgency) {
     final nepAgency = nepAgencyMap[gaaAgency.uacsCode];
-    return gaaAgency.copyWith(
-      nepBudgetPesos: nepAgency?.budgetPesos,
-      gaaBudgetPesos: gaaAgency.budgetPesos,
+    return Agency(
+      code: gaaAgency.code, description: gaaAgency.description, uacsCode: gaaAgency.uacsCode,
+      nep: nepAgency?.nep ?? Money(amount: 0, amountPesos: 0),
+      gaa: gaaAgency.gaa,
     );
   }).toList();
 
   // Merge Operating Unit budgets
-  final combinedOperatingUnits = gaaDetails.operatingUnits.map((gaaOu) {
-    final nepOu = nepOuMap[gaaOu.uacsCode];
-    return gaaOu.copyWith(
-      nepBudgetPesos: nepOu?.budgetPesos,
-      gaaBudgetPesos: gaaOu.budgetPesos,
+  final combinedOperatingUnits = gaaDetails.operatingUnitClasses.map((gaaOu) {
+    final nepOu = nepOuMap[gaaOu.code];
+    return OperatingUnitClass(
+      code: gaaOu.code, description: gaaOu.description, status: gaaOu.status, operatingUnitCount: gaaOu.operatingUnitCount,
+      nep: nepOu?.nep ?? Money(amount: 0, amountPesos: 0), // Use NEP budget from NEP details if available, otherwise 0
+      gaa: gaaOu.gaa, // Use GAA budget from GAA details
     );
   }).toList();
+
+  // Merge Funding Sources budgets
+  final combinedFundingSources = gaaDetails.fundingSources.map((gaaFs) {
+    final nepFs = nepFundingSourceMap[gaaFs.uacsCode];
+    return FundSource(
+      uacsCode: gaaFs.uacsCode,
+      description: gaaFs.description,
+      clusterCode: gaaFs.clusterCode,
+      clusterDescription: gaaFs.clusterDescription,
+      totalBudget: nepFs?.totalBudget ?? 0, // NEP budget
+      totalBudgetPesos: gaaFs.totalBudgetPesos, // GAA budget
+    );
+  }).toList();
+
+  // Manually calculate the percentage difference to ensure consistency
 
   // Return a new DepartmentDetails object with the merged lists
   // We use gaaDetails as the base for top-level info like totalBudget
   return DepartmentDetails(
     code: gaaDetails.code,
     description: gaaDetails.description,
-    abbreviation: gaaDetails.abbreviation,
-    totalBudget: gaaDetails.totalBudget,
+    totalBudget: nepDetails.totalBudget, // Use NEP total budget for combined view
     totalBudgetPesos: gaaDetails.totalBudgetPesos,
+    percentOfTotalBudget: nepDetails.percentOfTotalBudget,
+    totalBudgetGaa: gaaDetails.totalBudgetGaa,
+    totalBudgetGaaPesos: gaaDetails.totalBudgetGaaPesos,
+    percentDifferenceNepGaa: gaaDetails.percentDifferenceNepGaa,
+    totalAgencies: gaaDetails.totalAgencies,
+    totalProjects: gaaDetails.totalProjects,
+    totalRegions: gaaDetails.totalRegions,
     agencies: combinedAgencies, // Use merged agencies
-    operatingUnits: combinedOperatingUnits, // Use merged operating units
-    regions: gaaDetails.regions,
-    fundingSources: gaaDetails.fundingSources,
-    expenseCategories: gaaDetails.expenseCategories,
-    statistics: gaaDetails.statistics,
+    operatingUnitClasses: combinedOperatingUnits,
+    regions: gaaDetails.regions, // Assuming regions are the same for NEP and GAA
+    projects: gaaDetails.projects, // Assuming projects are the same for NEP and GAA
+    fundingSources: combinedFundingSources, // Use merged funding sources
+    expenseClassifications:
+        gaaDetails.expenseClassifications, 
+    statistics: gaaDetails.statistics, 
+    budgetComparison: BudgetComparison(
+      nep: nepDetails.budgetComparison.nep,
+      gaa: gaaDetails.budgetComparison.gaa,
+      difference: Difference(
+        amount: gaaDetails.totalBudget - nepDetails.totalBudget,
+        amountPesos: gaaDetails.totalBudgetPesos - nepDetails.totalBudgetPesos,
+      ),
+    ),
   );
 }
 
@@ -109,7 +144,7 @@ Future<DepartmentDetails> _fetchFromApi(String code, String year, String? type, 
   }
 
   if (response.statusCode == 200) {
-    // Cache the successful response
+    // Cache the successful response 
     try {
       debugPrint('API Response for department details ($code, $year): ${response.body}'); // Log raw API response
       await prefs.setString(cacheKey, response.body);

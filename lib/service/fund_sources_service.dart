@@ -31,7 +31,7 @@ Future<FundSource> fetchFundSourceDetails({
   final queryParameters = {
     'year': year,
     'withBudget': withBudget,
-    if (type.isNotEmpty) 'type': type,
+    if (type.isNotEmpty) 'type': type, // Ensure type is passed in the query
   };
   final path = '/api/v1/funding-sources/$code';
   // Use SharedPreferences to cache fund source responses per code/year/type/withBudget

@@ -27,8 +27,8 @@ class OperatingUnitDetails {
       departmentDescription: json['departmentDescription'] as String,
       agencyCode: json['agencyCode'] as String,
       agencyDescription: json['agencyDescription'] as String,
-      totalBudget: json['totalBudget'] as int,
-      totalBudgetPesos: json['totalBudgetPesos'] as int,
+      totalBudget: json['totalBudget'] as int? ?? 0,
+      totalBudgetPesos: json['totalBudgetPesos'] as int? ?? 0,
     );
   }
 

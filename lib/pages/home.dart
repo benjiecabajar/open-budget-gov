@@ -114,10 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
 
-      // Even with cached list, we might need to pre-fetch details if they are missing.
       _prefetchDepartmentDetails(cachedData.departments);
 
-      // Also, fetch the total projects from the details cache
       _calculateTotalProjectsFromDetails(cachedData.departments);
 
       return;
@@ -135,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ]);
 
       final totalBudgetResult = results[0] as dynamic;
-      final departments = results[1] as List<ListOfAllDepartmets>; // Cast to List<ListOfAllDepartmets>
+      final departments = results[1] as List<ListOfAllDepartmets>; 
       final yearlyNepBudget = totalBudgetResult.totalInPesos ~/ 2;
 
       _cache[cacheKey] = _BudgetData(
@@ -144,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
         totalDepartments: departments.length,
         totalAgencies: departments.fold<int>(
             0, (sum, dept) => sum + dept.totalAgencies),
-        totalProjects: 0, // Initialize with 0, will be updated by background fetch
+        totalProjects: 0, 
       );
       _saveDepartmentsCacheToDisk();
 
@@ -155,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
 
-      // Pre-fetch details for all departments in the background
       _prefetchDepartmentDetails(departments);
     } catch (e) {
       setState(() {
@@ -183,13 +180,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // If all details were in the cache, we have the final count.
-    // If not, the pre-fetch will eventually get them, and this will be recalculated on next load.
     if (allDetailsCached && mounted) {
       setState(() {
         _totalProjects = totalProjects;
       });
-      // Optionally, update the main cache as well
       final cacheKey = '$_selectedYear-NEP';
       if (_cache.containsKey(cacheKey)) {
         _cache[cacheKey]!.totalProjects = totalProjects;
@@ -212,23 +206,18 @@ class _HomeScreenState extends State<HomeScreen> {
           fetchDepartmentDetails(code: dept.code, year: _selectedYear, combineBudgets: false).then((details) {
             detailsCache[cacheKey] = details.toJson();
           }).catchError((e) {
-            // Silently fail or log the error, so it doesn't disrupt the UI
-            // print('Failed to prefetch details for ${dept.code}: $e');
+            // ignore
           })
         );
       }
     }
 
     if (prefetchFutures.isNotEmpty) {
-      // Wait for all fetches to complete
       await Future.wait(prefetchFutures);
-      // Save the updated cache to disk
       final String encodedDetails = jsonEncode(detailsCache);
       await prefs.setString('department_details_cache', encodedDetails);
       
-      // Now that fetching is done, recalculate the total projects
       _calculateTotalProjectsFromDetails(departments);
-      // print('Department details cache updated.');
     }
   }
 
@@ -283,12 +272,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onYearChanged(String? newValue) {
-    // Only refetch if the year has actually changed.
     if (newValue != null && newValue != _selectedYear) { 
       setState(() => _selectedYear = newValue);
       _refreshData();
     } else if (newValue != null) {
-      // Allow refreshing even if the same year is selected again.
       _refreshData();
     }
   }
@@ -304,8 +291,24 @@ class _HomeScreenState extends State<HomeScreen> {
         onYearChanged: _onYearChanged,
         onTypeChanged: (String? newValue) {},
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.clear();
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cache cleared! Please restart the app or refresh.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+        label: const Text('Clear Cache'),
+        icon: const Icon(Icons.delete_forever_rounded),
+        backgroundColor: Colors.redAccent,
+      ),
       body: RefreshIndicator(
-        onRefresh: _refreshData, // Hook up the refresh logic
+        onRefresh: _refreshData, 
         color: const Color(0xFF1565C0),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -345,7 +348,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshData() async {
-    // This function can be called by both pull-to-refresh and year change. It runs fetches concurrently.
     await Future.wait([
       _fetchDepartments(),
       _fetchRegions(),

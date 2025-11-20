@@ -1,8 +1,9 @@
+import 'package:budget_gov/model/funds_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_details.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
-import 'package:budget_gov/model/funds_sources.dart' as fund_model;
-import 'package:budget_gov/service/fund_sources_service.dart';
+
+
 // Already imported, but good to confirm
 
 class DepartmentDetailsPage extends StatefulWidget {
@@ -22,16 +23,16 @@ class DepartmentDetailsPage extends StatefulWidget {
 }
 
 class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
-	late Future<List<dynamic>> _detailsFuture;
+	late Future<DepartmentDetails> _detailsFuture;
 
 	@override
 	void initState() {
 		super.initState();
-		// Fetch combined details for display, and NEP/GAA separately for the header comparison
-		_detailsFuture = Future.wait([
-			fetchDepartmentDetails(code: widget.departmentCode, year: widget.year, combineBudgets: true), // This gets the merged data
-			fetchDepartmentDetails(code: widget.departmentCode, year: widget.year, type: 'NEP'), // This gets just NEP for the header
-    ]);
+		_detailsFuture = fetchDepartmentDetails(
+			code: widget.departmentCode,
+			year: widget.year,
+			combineBudgets: true,
+		);
 	}
 
 	@override
@@ -45,7 +46,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 				foregroundColor: Colors.white,
 				elevation: 0,
 			),
-			body: FutureBuilder<List<dynamic>>(
+			body: FutureBuilder<DepartmentDetails>(
 				future: _detailsFuture,
 				builder: (context, snapshot) {
 					if (snapshot.connectionState == ConnectionState.waiting) {
@@ -69,34 +70,32 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 							),
 						);
 					} else if (snapshot.hasData) {
-						// The first item is the combined details for the main view
-						final displayDetails = snapshot.data![0] as DepartmentDetails; // Our new combined object
-						final nepDetails = snapshot.data![1] as DepartmentDetails; // Just for the header
-						final gaaDetails = displayDetails; // The combined object is based on GAA totals
+						final details = snapshot.data!;
+            
 
 						return SingleChildScrollView(
 							padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
 							child: Column(
 								crossAxisAlignment: CrossAxisAlignment.start,
 								children: [
-									_buildComparisonHeader(nepDetails, gaaDetails),
+									_buildComparisonHeader(details),
 									const SizedBox(height: 18),
-									_buildStats(displayDetails),
+									_buildStats(details),
 									const SizedBox(height: 24),
 									_buildSectionTitle('Agencies'),
-									_buildAgencies(displayDetails), // Now only needs one parameter
+									_buildAgencies(details),
 									const SizedBox(height: 24),
-									_buildSectionTitle('Operating Units'),
-									_buildOperatingUnits(displayDetails),
+									_buildSectionTitle('Operating Unit Classes'),
+									_buildOperatingUnitClasses(details),
 									const SizedBox(height: 24),
 									_buildSectionTitle('Regions'),
-									_buildRegions(displayDetails),
+									_buildRegions(details),
 									const SizedBox(height: 24),
 									_buildSectionTitle('Funding Sources'),
-									_buildFundingSources(displayDetails),
+									_buildFundingSources(details),
 									const SizedBox(height: 24),
 									_buildSectionTitle('Expense Categories'),
-									_buildExpenseCategories(displayDetails),
+									_buildExpenseCategories(details),
 								],
 							),
 						);
@@ -108,9 +107,10 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		);
 	}
 
-	Widget _buildComparisonHeader(DepartmentDetails nep, DepartmentDetails gaa) {
-		final insertions = gaa.totalBudgetPesos - nep.totalBudgetPesos;
-		final changePercent = nep.totalBudgetPesos == 0 ? 0.0 : (insertions / nep.totalBudgetPesos) * 100;
+	Widget _buildComparisonHeader(DepartmentDetails details) {
+		final comparison = details.budgetComparison;
+		final insertions = comparison.difference.amountPesos;
+		final changePercent = comparison.difference.percentChange ?? 0.0;
 
 		return Container(
 			width: double.infinity,
@@ -129,24 +129,24 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-					Text('Department Code: ${gaa.code}', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
+					Text('Department Code: ${details.code}', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w600)),
 					const SizedBox(height: 4),
-					Text(gaa.description, style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.w900, fontSize: 20)),
+					Text(details.description, style: const TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.w900, fontSize: 20)),
 					const SizedBox(height: 12),
 					const Divider(),
 					const SizedBox(height: 12),
 					Row(
 						mainAxisAlignment: MainAxisAlignment.spaceBetween,
 						children: [
-							_buildBudgetColumn('NEP ${widget.year}', nep.totalBudgetPesos, Colors.blueGrey),
-							_buildBudgetColumn('GAA ${widget.year}', gaa.totalBudgetPesos, const Color(0xFF1565C0)),
+							_buildBudgetColumn('NEP ${widget.year}', comparison.nep.amountPesos, Colors.blueGrey),
+							_buildBudgetColumn('GAA ${widget.year}', comparison.gaa.amountPesos, const Color(0xFF1565C0)),
 						],
 					),
 					const SizedBox(height: 16),
 					Row(
 						children: [
 							_buildChangeCard('Insertions', _formatLargeNumber(insertions, showSign: true), insertions >= 0 ? Colors.green.shade700 : Colors.red.shade700, Icons.add_circle_outline_rounded),
-							const SizedBox(width: 12),
+							const SizedBox(width: 10),
 							_buildChangeCard('Change', '${changePercent.toStringAsFixed(2)}%', changePercent >= 0 ? Colors.green.shade700 : Colors.red.shade700, Icons.change_circle_outlined),
 						],
 					)
@@ -155,7 +155,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		);
 	}
 
-	Widget _buildBudgetColumn(String label, int value, Color color) {
+	Widget _buildBudgetColumn(String label, num value, Color color) {
 		return Column(
 			crossAxisAlignment: CrossAxisAlignment.start,
 			children: [
@@ -176,11 +176,11 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			mainAxisAlignment: MainAxisAlignment.spaceBetween,
 			children: [
 				_buildMiniStat('Agencies', stats.totalAgencies, const Color(0xFF1565C0)),
-				_buildMiniStat('Op. Units', stats.totalOperatingUnits, const Color(0xFF1976D2)),
+				_buildMiniStat('Op. Classes', stats.totalOperatingUnitClasses, const Color(0xFF1976D2)),
 				_buildMiniStat('Regions', stats.totalRegions, const Color(0xFF1E88E5)),
 				_buildMiniStat('Sources', stats.totalFundingSources, const Color(0xFF42A5F5)),
-				_buildMiniStat('Expenses', stats.totalExpenseCategories, const Color(0xFF64B5F6)),
-				_buildMiniStat('Projects', stats.totalProjects, const Color(0xFF2E7D32)),
+				_buildMiniStat('Expenses', stats.totalExpenseClassifications, const Color(0xFF64B5F6)),
+				_buildMiniStat('Projects', stats.totalProjects, const Color(0xFF2E7D32))
 			],
 		);
 	}
@@ -236,7 +236,6 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			return _buildEmptyCard('No agencies found.');
 		}
 
-		// The details object now contains agencies with combined budgets.
 		return Column(
 			children: details.agencies.map((agency) {
 				return _buildAgencyCard(agency);
@@ -245,8 +244,6 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 	}
 
 	Widget _buildAgencyCard(Agency agency) {
-
-
 		return Container(
 			margin: const EdgeInsets.only(top: 10),
 			padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -270,81 +267,60 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 				children: [
 					Text(agency.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
 					const SizedBox(height: 2),
-					Text('UACS: ${agency.uacsCode}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
-					
+					Text('Code: ${agency.code}${agency.uacsCode != null ? " | UACS: ${agency.uacsCode}" : ""}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+					const SizedBox(height: 8),
+					Row(
+						children: [
+							Expanded(child: Text('NEP: ${_formatLargeNumber(agency.nep.amountPesos)}', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+							Expanded(child: Text('GAA: ${_formatLargeNumber(agency.gaa.amountPesos)}', textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+						],
+					),
 				],
 			),
 		);
 	}
 
-	Widget _buildOperatingUnits(DepartmentDetails details) {
-		if (details.operatingUnits.isEmpty) {
-			return _buildEmptyCard('No operating units found.');
+	Widget _buildOperatingUnitClasses(DepartmentDetails details) {
+		if (details.operatingUnitClasses.isEmpty) {
+			return _buildEmptyCard('No operating unit classes found.');
 		}
-
-		// The operating units in `details` now have combined budgets from the service.
-		// We can directly map over them.
 		return Column(
-			children: details.operatingUnits.map((ou) => _buildOperatingUnitCard(ou)).toList(),
+			children: details.operatingUnitClasses.map((ouc) => _buildOperatingUnitClassCard(ouc)).toList(),
 		);
 	}
 
-	Widget _buildOperatingUnitCard(OperatingUnit ou) {
-    // This card now uses the summary data from DepartmentDetails.
-    // The budgetPesos here corresponds to the selected type (GAA in this case).
-    final nepText = (ou.nepBudgetPesos == null || ou.nepBudgetPesos == 0)
-        ? 'NEP: '
-        : 'NEP: ${_formatLargeNumber(ou.nepBudgetPesos)}';
-    final gaaText = (ou.gaaBudgetPesos == null || ou.gaaBudgetPesos == 0)
-        ? 'GAA: '
-        : 'GAA: ${_formatLargeNumber(ou.gaaBudgetPesos)}';
-
+	Widget _buildOperatingUnitClassCard(OperatingUnitClass ouc) {
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF1976D2).withOpacity(0.08),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.08), width: 1),
         boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1976D2).withOpacity(0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: const Color(0xFF1976D2).withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(ou.description,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                  color: Color(0xFF0D47A1))),
+          Text(ouc.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
           const SizedBox(height: 2),
-          Text('UACS: ${ou.uacsCode} | Agency: ${ou.agencyCode}',
-              style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500)),
+          Text(
+            'Code: ${ouc.code}${ouc.operatingUnitCount != null ? " | Units: ${ouc.operatingUnitCount}" : ""}',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
-                  child: Text(nepText,
-                      style: TextStyle(
-                          color: Colors.grey[800],
-                          fontWeight: FontWeight.w700))),
+                  child: Text('NEP: ${_formatLargeNumber(ouc.nep.amountPesos)}', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
               Expanded(
-                  child: Text(gaaText,
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                          color: Colors.grey[800],
-                          fontWeight: FontWeight.w700))),
+                  child: Text(
+                'GAA: ${_formatLargeNumber(ouc.gaa.amountPesos)}',
+                textAlign: TextAlign.end,
+                style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700),
+              )),
             ],
           ),
         ],
@@ -357,13 +333,71 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			return _buildEmptyCard('No regions found.');
 		}
 		return Column(
-			children: details.regions.map((r) => _buildInfoCard(
-				title: r.description,
-				subtitle: 'Code: ${r.code}',
-				trailing: _formatLargeNumber(r.budgetPesos),
-				icon: Icons.location_on_rounded,
-				color: const Color(0xFF1E88E5),
-			)).toList(),
+			children: details.regions.map((region) {
+        String description;
+        switch (region.code) {
+          case '01':
+            description = 'Region I - Ilocos';
+            break;
+          case '02':
+            description = 'Region II - Cagayan Valley';
+            break;
+          case '03':
+            description = 'Region III - Central Luzon';
+            break;
+          case '04':
+            description = 'Region IV-A - CALABARZON';
+            break;
+          case '05':
+            description = 'Region V - Bicol';
+            break;
+          case '06':
+            description = 'Region VI - Western Visayas';
+            break;
+          case '07':
+            description = 'Region VII - Central Visayas';
+            break;
+          case '08':
+            description = 'Region VIII - Eastern Visayas';
+            break;
+          case '09':
+            description = 'Region IX - Zamboanga Peninsula';
+            break;
+          case '10':
+            description = 'Region X - Northern Mindanao';
+            break;
+          case '11':
+            description = 'Region XI - Davao';
+            break;
+          case '12':
+            description = 'Region XII - SOCCSKSARGEN';
+            break;
+          case '13':
+            description = 'National Capital Region (NCR)';
+            break;
+          case '14':
+            description = 'Cordillera Administrative Region (CAR)';
+            break;
+          case '15':
+            description = 'Bangsamoro Autonomous Region in Muslim Mindanao (BARMM)';
+            break;
+          case '16':
+            description = 'Region XIII - Caraga';
+            break;
+          case '17':
+            description = 'Region IV-B - MIMAROPA';
+            break;
+          default:
+            description = region.description ?? 'N/A';
+        }
+        return _buildInfoCard(
+          title: description,
+          subtitle: 'Code: ${region.code}',
+          trailing: _formatLargeNumber(region.gaa.amountPesos), // Corrected from budgetPesos
+          icon: Icons.location_on_rounded,
+          color: const Color(0xFF1E88E5),
+        );
+      }).toList(),
 		);
 	}
 
@@ -372,98 +406,18 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			return _buildEmptyCard('No funding sources found.');
 		}
 		return Column(
-			children: details.fundingSources.map((fs) => _buildFundingSourceCard(fs)).toList(),
+			children: details.fundingSources
+					.map((fs) => _buildFundingSourceCard(fs))
+					.toList(),
 		);
 	}
 
-	Widget _buildFundingSourceCard(FundingSource fs) {
-		// fetch NEP and GAA totals for this funding source (uses fund_sources_service)
-		final future = Future.wait([
-			fetchFundSourceDetails(code: fs.uacsCode, year: widget.year, type: 'NEP'),
-			fetchFundSourceDetails(code: fs.uacsCode, year: widget.year, type: 'GAA'),
-		]);
+	Widget _buildFundingSourceCard(FundSource fs) {
+		// The combined details already contain the correct NEP and GAA budgets.
+		// fs.totalBudget holds NEP, and fs.totalBudgetPesos holds GAA.
+		final nepText = 'NEP: ${_formatLargeNumber(fs.totalBudget)}';
+		final gaaText = 'GAA: ${_formatLargeNumber(fs.totalBudgetPesos)}';
 
-		return FutureBuilder<List<fund_model.FundSource>>(
-			future: future,
-			builder: (context, snapshot) {
-				// prepare display values for NEP/GAA, hide when zero to avoid showing '₱0'
-				String nepText = '';
-				String gaaText = '';
-				if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-					final nep = snapshot.data![0];
-					final gaa = snapshot.data![1];
-					nepText = (nep.totalBudgetPesos == 0) ? '' : _formatLargeNumber(nep.totalBudgetPesos);
-					gaaText = (gaa.totalBudgetPesos == 0) ? '' : _formatLargeNumber(gaa.totalBudgetPesos);
-				}
-
-				return Container(
-					margin: const EdgeInsets.only(top: 10),
-					padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-					decoration: BoxDecoration(
-						color: Colors.white,
-						borderRadius: BorderRadius.circular(10),
-						border: Border.all(
-							color: const Color(0xFF42A5F5).withOpacity(0.08),
-							width: 1,
-						),
-						boxShadow: [
-							BoxShadow(
-								color: const Color(0xFF42A5F5).withOpacity(0.07),
-								blurRadius: 10,
-								offset: const Offset(0, 2),
-							),
-						],
-					),
-					child: Row(
-						children: [
-							Expanded(
-								child: Column(
-									crossAxisAlignment: CrossAxisAlignment.start,
-									children: [
-										Text(fs.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
-										const SizedBox(height: 2),
-										Text('UACS: ${fs.uacsCode} ${fs.fundClusterDescription ?? ''}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
-										const SizedBox(height: 8),
-										Row(
-											children: [
-												Expanded(child: Text(nepText.isNotEmpty ? 'NEP: $nepText' : (snapshot.connectionState == ConnectionState.waiting ? 'NEP: Loading...' : 'NEP:'), style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
-												Expanded(child: Text(gaaText.isNotEmpty ? 'GAA: $gaaText' : (snapshot.connectionState == ConnectionState.waiting ? 'GAA: Loading...' : 'GAA:'), textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
-												],
-												),
-									],
-								),
-							),
-							const SizedBox(width: 10),
-							Text(fs.budgetPesos == 0 ? '' : _formatLargeNumber(fs.budgetPesos), style: TextStyle(color: const Color(0xFF42A5F5), fontWeight: FontWeight.w900, fontSize: 15)),
-						],
-					),
-				);
-			},
-		);
-	}
-
-	Widget _buildExpenseCategories(DepartmentDetails details) {
-		if (details.expenseCategories.isEmpty) {
-			return _buildEmptyCard('No expense categories found.');
-		}
-		return Column(
-			children: details.expenseCategories.map((ec) => _buildInfoCard(
-				title: ec.description,
-				subtitle: 'Code: ${ec.code}',
-				trailing: _formatLargeNumber(ec.budgetPesos),
-				icon: Icons.category_rounded,
-				color: const Color(0xFF64B5F6),
-			)).toList(),
-		);
-	}
-
-	Widget _buildInfoCard({
-		required String title,
-		required String subtitle,
-		required String trailing,
-		required IconData icon,
-		required Color color,
-	}) {
 		return Container(
 			margin: const EdgeInsets.only(top: 10),
 			padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -471,44 +425,51 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 				color: Colors.white,
 				borderRadius: BorderRadius.circular(10),
 				border: Border.all(
-					color: color.withOpacity(0.08),
+					color: const Color(0xFF42A5F5).withOpacity(0.08),
 					width: 1,
 				),
 				boxShadow: [
 					BoxShadow(
-						color: color.withOpacity(0.07),
+						color: const Color(0xFF42A5F5).withOpacity(0.07),
 						blurRadius: 10,
 						offset: const Offset(0, 2),
 					),
 				],
 			),
-			child: Row(
+			child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-					Container(
-						padding: const EdgeInsets.all(10),
-						decoration: BoxDecoration(
-							color: color.withOpacity(0.13),
-							borderRadius: BorderRadius.circular(8),
-						),
-						child: Icon(icon, color: color, size: 22),
+					Text(fs.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+					const SizedBox(height: 2),
+					Text('UACS: ${fs.uacsCode} ${fs.clusterDescription ?? ''}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+					const SizedBox(height: 8),
+					Row(
+						children: [
+							Expanded(child: Text(nepText, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+							Expanded(child: Text(gaaText, textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+						],
 					),
-					const SizedBox(width: 14),
-					Expanded(
-						child: Column(
-							crossAxisAlignment: CrossAxisAlignment.start,
-							children: [
-								Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
-								const SizedBox(height: 2),
-								Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
-							],
-						),
-					),
-					const SizedBox(width: 10),
-					Text(trailing, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 15)),
 				],
 			),
 		);
 	}
+  
+
+  Widget _buildExpenseCategories(DepartmentDetails details) {
+		if (details.expenseClassifications.isEmpty) {
+			return _buildEmptyCard('No expense categories found.');
+		}
+		return Column(
+			children: details.expenseClassifications.map((ec) => _buildInfoCard(
+				title: ec.description,
+				subtitle: 'Code: ${ec.code}',
+				trailing: _formatLargeNumber(ec.gaa.amountPesos),
+				icon: Icons.category_rounded,
+				color: const Color(0xFF64B5F6),
+			)).toList(),
+		);
+  }
+
 
 	Widget _buildEmptyCard(String message) {
 		return Container(
@@ -551,4 +512,49 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		if (absNumber >= 1e6) return '$sign₱${(absNumber / 1e6).toStringAsFixed(2)}M';
 		return '$sign₱${number.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
 	}
+}
+
+Widget _buildInfoCard({
+  required String title,
+  String? subtitle,
+  String? trailing,
+  Widget? trailingWidget,
+  IconData? icon,
+  Color? color,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(top: 10),
+    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: (color ?? Colors.grey).withOpacity(0.08), width: 1),
+      boxShadow: [
+        BoxShadow(color: (color ?? Colors.grey).withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 2)),
+      ],
+    ),
+    child: Row(
+      children: [
+        if (icon != null) ...[
+          Icon(icon, color: color ?? Colors.blue, size: 24),
+          const SizedBox(width: 12),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+              if (subtitle != null && subtitle.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+              ],
+            ],
+          ),
+        ),
+        if (trailingWidget != null) trailingWidget,
+        if (trailing != null && trailing.isNotEmpty && trailingWidget == null)
+          Text(trailing, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700)),
+      ],
+    ),
+  );
 }

@@ -13,8 +13,8 @@ class DepartmentRegionalBudget {
 
   factory DepartmentRegionalBudget.fromJson(Map<String, dynamic> json) {
     return DepartmentRegionalBudget(
-      total: json['total'] as int,
-      totalInPesos: json['totalInPesos'] as int,
+      total: json['total'] as int? ?? 0,
+      totalInPesos: json['totalInPesos'] as int? ?? 0,
       currency: json['currency'] as String,
       filters: Filters.fromJson(json['filters'] as Map<String, dynamic>),
     );

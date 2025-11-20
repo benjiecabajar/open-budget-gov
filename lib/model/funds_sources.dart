@@ -21,8 +21,8 @@ class FundSource {
       description: json['description'] as String,
       clusterCode: json['clusterCode'] as String?,
       clusterDescription: json['clusterDescription'] as String?,
-      totalBudget: json['totalBudget'] as int,
-      totalBudgetPesos: json['totalBudgetPesos'] as int,
+      totalBudget: json['totalBudget'] as int? ?? 0,
+      totalBudgetPesos: json['totalBudgetPesos'] as int? ?? 0,
     );
   }
 

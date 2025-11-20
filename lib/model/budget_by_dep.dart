@@ -19,9 +19,9 @@ class DepartmentBudget {
     return DepartmentBudget(
       departmentCode: json['departmentCode'],
       departmentName: json['departmentName'],
-      totalBudget: json['totalBudget'],
-      totalBudgetPesos: json['totalBudgetPesos'],
-      recordCount: json['recordCount'],
+      totalBudget: json['totalBudget'] as int? ?? 0,
+      totalBudgetPesos: json['totalBudgetPesos'] as int? ?? 0,
+      recordCount: json['recordCount'] as int? ?? 0,
       percentage: json['percentage'].toDouble(),
     );
   }

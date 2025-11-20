@@ -30,17 +30,17 @@ class ListOfAllDepartmets {
     return ListOfAllDepartmets(
       code: json['code'] as String,
       description: json['description'] as String,
-      totalBudget: json['totalBudget'] as int,
-      totalBudgetPesos: json['totalBudgetPesos'] as int,
+      totalBudget: json['totalBudget'] as int? ?? 0,
+      totalBudgetPesos: json['totalBudgetPesos'] as int? ?? 0,
       percentOfTotalBudget: (json['percentOfTotalBudget'] is num)
           ? (json['percentOfTotalBudget'] as num).toDouble()
           : 0.0,
-      totalBudgetGaa: json['totalBudgetGaa'] as int,
-      totalBudgetGaaPesos: json['totalBudgetGaaPesos'] as int,
+      totalBudgetGaa: json['totalBudgetGaa'] as int? ?? 0,
+      totalBudgetGaaPesos: json['totalBudgetGaaPesos'] as int? ?? 0,
       percentDifferenceNepGaa: (json['percentDifferenceNepGaa'] is num)
           ? (json['percentDifferenceNepGaa'] as num).toDouble()
           : 0.0,
-      totalAgencies: json['totalAgencies'] as int,
+      totalAgencies: json['totalAgencies'] as int? ?? 0,
       totalProjects: json['totalProjects'] as int? ?? 0,
       totalRegions: json['totalRegions'] as int? ?? 0, 
     );
