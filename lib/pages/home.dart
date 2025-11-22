@@ -171,10 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
     bool allDetailsCached = true;
 
     for (var dept in departments) {
-      final cacheKey = '${dept.code}-$_selectedYear';
+      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP'; // Use type-specific key
       if (detailsCache.containsKey(cacheKey)) {
         final details = DepartmentDetails.fromJson(detailsCache[cacheKey] as Map<String, dynamic>);
-        totalProjects += details.statistics.totalProjects;
+        totalProjects += details.totalProjects;
       } else {
         allDetailsCached = false;
       }
@@ -200,10 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
     List<Future> prefetchFutures = [];
 
     for (var dept in departments) {
-      final cacheKey = '${dept.code}-$_selectedYear';
+      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP'; // Use type-specific key
       if (!detailsCache.containsKey(cacheKey)) {
         prefetchFutures.add(
-          fetchDepartmentDetails(code: dept.code, year: _selectedYear, combineBudgets: false).then((details) {
+          fetchDepartmentDetails(code: dept.code, year: _selectedYear, type: 'NEP').then((details) {
             detailsCache[cacheKey] = details.toJson();
           }).catchError((e) {
             // ignore
@@ -275,8 +275,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (newValue != null && newValue != _selectedYear) { 
       setState(() => _selectedYear = newValue);
       _refreshData();
-    } else if (newValue != null) {
-      _refreshData();
     }
   }
 
@@ -290,26 +288,11 @@ class _HomeScreenState extends State<HomeScreen> {
         availableYears: _years,
         onYearChanged: _onYearChanged,
         onTypeChanged: (String? newValue) {},
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.clear();
-          // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cache cleared! Please restart the app or refresh.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        },
-        label: const Text('Clear Cache'),
-        icon: const Icon(Icons.delete_forever_rounded),
-        backgroundColor: Colors.redAccent,
+        onRefresh: _refreshData,
+        color: const Color(0xFF1565C0),
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshData, 
-        color: const Color(0xFF1565C0),
+        onRefresh: _refreshData,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(

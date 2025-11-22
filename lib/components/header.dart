@@ -14,7 +14,7 @@ class Header extends StatefulWidget implements PreferredSizeWidget {
     required this.selectedType,
     required this.availableYears,
     required this.onYearChanged,
-    required this.onTypeChanged,
+    required this.onTypeChanged, required Color color, required Future<void> Function() onRefresh,
   });
 
   @override

@@ -19,7 +19,7 @@ Future<DepartmentDetails> fetchDepartmentDetails({
   final queryParameters = {'year': year};
   if (type != null) queryParameters['type'] = type; // Use the provided type
   final prefs = await SharedPreferences.getInstance(); 
-  final cacheKey = 'department-details:$code:$year:${type ?? 'default'}';
+  final cacheKey = 'department-details:$code:$year:${type ?? 'NEP'}'; // Consistent cache key
 
   final cachedResponse = prefs.getString(cacheKey);
   if (cachedResponse != null) {
@@ -48,6 +48,7 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
   final nepAgencyMap = {for (var agency in nepDetails.agencies) agency.uacsCode: agency};
   final nepFundingSourceMap = {for (var fs in nepDetails.fundingSources) fs.uacsCode: fs};
   final nepOuMap = {for (var ou in nepDetails.operatingUnitClasses) ou.code: ou};
+  final nepRegionMap = {for (var region in nepDetails.regions) region.code: region};
 
   // Merge Agency budgets
   final combinedAgencies = gaaDetails.agencies.map((gaaAgency) {
@@ -69,6 +70,17 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     );
   }).toList();
 
+  // Merge Region budgets
+  final combinedRegions = gaaDetails.regions.map((gaaRegion) {
+    final nepRegion = nepRegionMap[gaaRegion.code];
+    return RegionBudget(
+      code: gaaRegion.code,
+      description: gaaRegion.description,
+      nep: nepRegion?.nep ?? Money(amount: 0, amountPesos: 0),
+      gaa: gaaRegion.gaa,
+    );
+  }).toList();
+
   // Merge Funding Sources budgets
   final combinedFundingSources = gaaDetails.fundingSources.map((gaaFs) {
     final nepFs = nepFundingSourceMap[gaaFs.uacsCode];
@@ -82,15 +94,22 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     );
   }).toList();
 
-  // Manually calculate the percentage difference to ensure consistency
+  // Manually calculate the difference and percentage change
+  final nepAmountPesos = nepDetails.budgetComparison.nep.amountPesos;
+  final gaaAmountPesos = gaaDetails.budgetComparison.gaa.amountPesos;
+  final differenceAmountPesos = gaaAmountPesos - nepAmountPesos;
+  double percentChange = 0.0;
+  if (nepAmountPesos != 0) {
+    percentChange = (differenceAmountPesos / nepAmountPesos) * 100;
+  }
 
   // Return a new DepartmentDetails object with the merged lists
   // We use gaaDetails as the base for top-level info like totalBudget
   return DepartmentDetails(
     code: gaaDetails.code,
     description: gaaDetails.description,
-    totalBudget: nepDetails.totalBudget, // Use NEP total budget for combined view
-    totalBudgetPesos: gaaDetails.totalBudgetPesos,
+    totalBudget: gaaDetails.totalBudget, // Use GAA total budget for the main view
+    totalBudgetPesos: gaaDetails.totalBudgetPesos, // Use GAA total budget pesos
     percentOfTotalBudget: nepDetails.percentOfTotalBudget,
     totalBudgetGaa: gaaDetails.totalBudgetGaa,
     totalBudgetGaaPesos: gaaDetails.totalBudgetGaaPesos,
@@ -100,7 +119,7 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     totalRegions: gaaDetails.totalRegions,
     agencies: combinedAgencies, // Use merged agencies
     operatingUnitClasses: combinedOperatingUnits,
-    regions: gaaDetails.regions, // Assuming regions are the same for NEP and GAA
+    regions: combinedRegions, // Use merged regions
     projects: gaaDetails.projects, // Assuming projects are the same for NEP and GAA
     fundingSources: combinedFundingSources, // Use merged funding sources
     expenseClassifications:
@@ -110,8 +129,9 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
       nep: nepDetails.budgetComparison.nep,
       gaa: gaaDetails.budgetComparison.gaa,
       difference: Difference(
-        amount: gaaDetails.totalBudget - nepDetails.totalBudget,
-        amountPesos: gaaDetails.totalBudgetPesos - nepDetails.totalBudgetPesos,
+        amount: gaaDetails.totalBudgetGaa - nepDetails.totalBudget,
+        amountPesos: differenceAmountPesos,
+        percentChange: percentChange,
       ),
     ),
   );

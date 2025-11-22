@@ -2,7 +2,7 @@ import 'package:budget_gov/model/funds_sources.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_details.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
-
+import 'package:budget_gov/service/fund_sources_service.dart';
 
 // Already imported, but good to confirm
 
@@ -30,8 +30,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		super.initState();
 		_detailsFuture = fetchDepartmentDetails(
 			code: widget.departmentCode,
-			year: widget.year,
-			combineBudgets: true,
+			year: widget.year, combineBudgets: true,
 		);
 	}
 
@@ -188,7 +187,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 	Widget _buildMiniStat(String label, int value, Color color) {
 		return Column(
 			children: [
-				Text('$value', style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18)),
+				Text(_formatNumber(value), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18)),
 				const SizedBox(height: 2),
 				Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w700)),
 			],
@@ -334,6 +333,11 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		}
 		return Column(
 			children: details.regions.map((region) {
+        final nepAmount = region.nep.amountPesos;
+        final gaaAmount = region.gaa.amountPesos;
+        final insertion = gaaAmount - nepAmount;
+        final percentChange = (nepAmount != 0) ? (insertion / nepAmount) * 100 : 0.0;
+
         String description;
         switch (region.code) {
           case '01':
@@ -390,13 +394,47 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
           default:
             description = region.description ?? 'N/A';
         }
-        return _buildInfoCard(
-          title: description,
-          subtitle: 'Code: ${region.code}',
-          trailing: _formatLargeNumber(region.gaa.amountPesos), // Corrected from budgetPesos
-          icon: Icons.location_on_rounded,
-          color: const Color(0xFF1E88E5),
-        );
+        return Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: const Color(0xFF1E88E5).withOpacity(0.08),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1E88E5).withOpacity(0.07),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+                const SizedBox(height: 2),
+                Text('Code: ${region.code}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: Text('NEP: ${_formatLargeNumber(nepAmount)}', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+                    Expanded(child: Text('GAA: ${_formatLargeNumber(gaaAmount)}', textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _buildChangeCard('Insertion', _formatLargeNumber(insertion, showSign: true), insertion >= 0 ? Colors.green.shade700 : Colors.red.shade700, Icons.add_circle_outline_rounded),
+                    const SizedBox(width: 10),
+                    _buildChangeCard('Change', '${percentChange.toStringAsFixed(2)}%', percentChange >= 0 ? Colors.green.shade700 : Colors.red.shade700, Icons.change_circle_outlined),
+                  ],
+                )
+              ],
+            ));
       }).toList(),
 		);
 	}
@@ -413,44 +451,71 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 	}
 
 	Widget _buildFundingSourceCard(FundSource fs) {
-		// The combined details already contain the correct NEP and GAA budgets.
-		// fs.totalBudget holds NEP, and fs.totalBudgetPesos holds GAA.
-		final nepText = 'NEP: ${_formatLargeNumber(fs.totalBudget)}';
-		final gaaText = 'GAA: ${_formatLargeNumber(fs.totalBudgetPesos)}';
+		// fetch NEP and GAA totals for this funding source (uses fund_sources_service)
+		final future = Future.wait([
+			fetchFundSourceDetails(code: fs.uacsCode, year: widget.year, type: 'NEP'),
+			fetchFundSourceDetails(code: fs.uacsCode, year: widget.year, type: 'GAA'),
+		]);
 
-		return Container(
-			margin: const EdgeInsets.only(top: 10),
-			padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-			decoration: BoxDecoration(
-				color: Colors.white,
-				borderRadius: BorderRadius.circular(10),
-				border: Border.all(
-					color: const Color(0xFF42A5F5).withOpacity(0.08),
-					width: 1,
-				),
-				boxShadow: [
-					BoxShadow(
-						color: const Color(0xFF42A5F5).withOpacity(0.07),
-						blurRadius: 10,
-						offset: const Offset(0, 2),
-					),
-				],
-			),
-			child: Column(
-				crossAxisAlignment: CrossAxisAlignment.start,
-				children: [
-					Text(fs.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
-					const SizedBox(height: 2),
-					Text('UACS: ${fs.uacsCode} ${fs.clusterDescription ?? ''}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
-					const SizedBox(height: 8),
-					Row(
-						children: [
-							Expanded(child: Text(nepText, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
-							Expanded(child: Text(gaaText, textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+		return FutureBuilder<List<FundSource>>(
+			future: future,
+			builder: (context, snapshot) {
+				// prepare display values for NEP/GAA, hide when zero to avoid showing '₱0'
+				String nepText = '';
+				String gaaText = '';
+				if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+					final nep = snapshot.data![0];
+					final gaa = snapshot.data![1];
+					nepText = (nep.totalBudgetPesos == 0) ? '' : _formatLargeNumber(nep.totalBudgetPesos);
+					gaaText = (gaa.totalBudgetPesos == 0) ? '' : _formatLargeNumber(gaa.totalBudgetPesos);
+				}
+
+				return Container(
+					margin: const EdgeInsets.only(top: 10),
+					padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+					decoration: BoxDecoration(
+						color: Colors.white,
+						borderRadius: BorderRadius.circular(10),
+						border: Border.all(
+							color: const Color(0xFF42A5F5).withOpacity(0.08),
+							width: 1,
+						),
+						boxShadow: [
+							BoxShadow(
+								color: const Color(0xFF42A5F5).withOpacity(0.07),
+								blurRadius: 10,
+								offset: const Offset(0, 2),
+							),
 						],
 					),
-				],
-			),
+					child: Column(
+						crossAxisAlignment: CrossAxisAlignment.start,
+						children: [
+							Text(fs.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+							const SizedBox(height: 2),
+							Text('UACS: ${fs.uacsCode} ${fs.clusterDescription ?? ''}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+							const SizedBox(height: 8),
+							Row(
+								children: [
+									Expanded(
+										child: Text(
+											nepText.isNotEmpty ? 'NEP: $nepText' : (snapshot.connectionState == ConnectionState.waiting ? 'NEP: Loading...' : 'NEP:'),
+											style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700),
+										),
+									),
+									Expanded(
+										child: Text(
+											gaaText.isNotEmpty ? 'GAA: $gaaText' : (snapshot.connectionState == ConnectionState.waiting ? 'GAA: Loading...' : 'GAA:'),
+											textAlign: TextAlign.end,
+											style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700),
+										),
+									),
+								],
+							),
+						],
+					),
+				);
+			},
 		);
 	}
   
@@ -497,6 +562,15 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			),
 		);
 	}
+
+	String _formatNumber(num? number) {
+		if (number == null) return "0";
+		return number.toStringAsFixed(0).replaceAllMapped(
+					RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+					(Match m) => '${m[1]},',
+				);
+	}
+
 
 	String _formatLargeNumber(num? number, {bool showSign = false}) {
 		if (number == null || number == 0) return '₱0';
