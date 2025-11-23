@@ -243,6 +243,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 	}
 
 	Widget _buildAgencyCard(Agency agency) {
+
 		return Container(
 			margin: const EdgeInsets.only(top: 10),
 			padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -266,7 +267,8 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 				children: [
 					Text(agency.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
 					const SizedBox(height: 2),
-					Text('Code: ${agency.code}${agency.uacsCode != null ? " | UACS: ${agency.uacsCode}" : ""}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+					Text('Code: ${agency.code}}',
+							style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
 					const SizedBox(height: 8),
 					Row(
 						children: [
@@ -303,7 +305,32 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(ouc.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(ouc.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+              ),
+              if (ouc.status != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (ouc.status?.toLowerCase() == 'active' ? Colors.green : Colors.red).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    ouc.status!,
+                    style: TextStyle(
+                      color: ouc.status?.toLowerCase() == 'active' ? Colors.green.shade800 : Colors.red.shade800,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
           const SizedBox(height: 2),
           Text(
             'Code: ${ouc.code}${ouc.operatingUnitCount != null ? " | Units: ${ouc.operatingUnitCount}" : ""}',
@@ -394,6 +421,8 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
           default:
             description = region.description ?? 'N/A';
         }
+
+
         return Container(
             margin: const EdgeInsets.only(top: 10),
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -415,14 +444,31 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
+                Text(description,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: Color(0xFF0D47A1))),
                 const SizedBox(height: 2),
-                Text('Code: ${region.code}', style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+                Text('Code: ${region.code}',
+                    style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(child: Text('NEP: ${_formatLargeNumber(nepAmount)}', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
-                    Expanded(child: Text('GAA: ${_formatLargeNumber(gaaAmount)}', textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+                    Expanded(
+                        child: Text('NEP: ${_formatLargeNumber(nepAmount)}',
+                            style: TextStyle(
+                                color: Colors.grey[800],
+                                fontWeight: FontWeight.w700))),
+                    Expanded(
+                        child: Text('GAA: ${_formatLargeNumber(gaaAmount)}',
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                                color: Colors.grey[800],
+                                fontWeight: FontWeight.w700))),
                   ],
                 ),
                 const SizedBox(height: 10),
