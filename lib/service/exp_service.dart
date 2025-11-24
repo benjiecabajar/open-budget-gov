@@ -1,17 +1,17 @@
 import 'dart:convert';
-import 'package:budget_gov/model/expenses.dart';
+import 'package:budget_gov/model/exp.dart';
 import 'package:budget_gov/service/dep_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 Future<List<Expense>> fetchExpenseCategories({
   required String year,
-  required String departmentCode,
+  String? departmentCode,
 }) async {
   final path = '/api/v1/expense-categories';
   final queryParameters = {
     'year': year,
-    'department': departmentCode,
+    if (departmentCode != null) 'department': departmentCode,
   };
 
   http.Response response;

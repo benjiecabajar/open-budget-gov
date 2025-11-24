@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_list.dart';
 import 'package:budget_gov/pages/dep_details_page.dart';
 
-class DepartmentCards extends StatelessWidget {
+class DepartmentCards extends StatefulWidget {
   final bool isLoading;
   final String? errorMessage;
   final List<ListOfAllDepartmets> departments;
@@ -17,6 +17,14 @@ class DepartmentCards extends StatelessWidget {
     required this.selectedYear,
     required this.selectedType,
   });
+
+  @override
+  State<DepartmentCards> createState() => _DepartmentCardsState();
+}
+
+class _DepartmentCardsState extends State<DepartmentCards> {
+  final Map<String, bool> _isCardExpanded = {};
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +60,7 @@ class DepartmentCards extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    if (isLoading) {
+    if (widget.isLoading) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(48.0),
@@ -85,17 +93,31 @@ class DepartmentCards extends StatelessWidget {
           ),
         ),
       );
-    } else if (errorMessage != null) {
+    } else if (widget.errorMessage != null) {
       return _buildErrorCard();
-    } else if (departments.isNotEmpty) {
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: departments.length,
-        itemBuilder: (context, index) {
-          final dept = departments[index];
-          return _buildDepartmentCard(context, dept);
-        },
+    } else if (widget.departments.isNotEmpty) {
+      final bool isCollapsible = widget.departments.length > 5;
+      final List<ListOfAllDepartmets> visibleDepartments =
+          isCollapsible && !_isExpanded
+              ? widget.departments.take(5).toList()
+              : widget.departments;
+
+      return Column(
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: visibleDepartments.length,
+            itemBuilder: (context, index) {
+              final dept = visibleDepartments[index];
+              return _buildDepartmentCard(context, dept);
+            },
+          ),
+          if (isCollapsible) ...[
+            const SizedBox(height: 10),
+            _buildExpansionButton(),
+          ],
+        ],
       );
     } else {
       return _buildEmptyCard();
@@ -103,7 +125,7 @@ class DepartmentCards extends StatelessWidget {
   }
 
   Widget _buildDepartmentCard(BuildContext context, ListOfAllDepartmets dept) {
-    final nepBudget = selectedType == 'NEP' ? dept.totalBudgetPesos : (dept.totalBudgetGaaPesos / (1 + (dept.percentDifferenceNepGaa) / 100)).round();
+    final nepBudget = widget.selectedType == 'NEP' ? dept.totalBudgetPesos : (dept.totalBudgetGaaPesos / (1 + (dept.percentDifferenceNepGaa) / 100)).round();
     final gaaBudget = dept.totalBudgetGaaPesos;
     final difference = gaaBudget - nepBudget;
     final change = dept.percentDifferenceNepGaa;
@@ -126,7 +148,13 @@ class DepartmentCards extends StatelessWidget {
         ],
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          focusColor: Colors.transparent,
+        ),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -194,16 +222,24 @@ class DepartmentCards extends StatelessWidget {
               ],
             ),
           ),
-          trailing: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1565C0).withOpacity(0.08),
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Color(0xFF1565C0),
-              size: 20,
+          onExpansionChanged: (isExpanded) {
+            setState(() {
+              _isCardExpanded[dept.code] = isExpanded;
+            });
+          },
+          trailing: RotationTransition(
+            turns: AlwaysStoppedAnimation((_isCardExpanded[dept.code] ?? false) ? 0.5 : 0),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1565C0).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF1565C0),
+                size: 20,
+              ),
             ),
           ),
           children: [
@@ -255,7 +291,7 @@ class DepartmentCards extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'NEP $selectedYear',
+                      'NEP ${widget.selectedYear}',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 10,
@@ -311,7 +347,7 @@ class DepartmentCards extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'GAA $selectedYear',
+                      'GAA ${widget.selectedYear}',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 10,
@@ -498,7 +534,7 @@ class DepartmentCards extends StatelessWidget {
               builder: (context) => DepartmentDetailsPage(
                 departmentCode: dept.code,
                 departmentDescription: dept.description,
-                year: selectedYear,
+                year: widget.selectedYear,
               ),
             ),
           );
@@ -526,6 +562,34 @@ class DepartmentCards extends StatelessWidget {
             ),
             SizedBox(width: 6),
             Icon(Icons.arrow_forward_rounded, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpansionButton() {
+    return TextButton(
+      onPressed: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF1565C0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _isExpanded ? 'Show Less' : 'Show All ${widget.departments.length} Departments',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            const SizedBox(width: 8),
+            Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
           ],
         ),
       ),
@@ -572,7 +636,7 @@ class DepartmentCards extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    errorMessage ?? 'Unknown error occurred',
+                    widget.errorMessage ?? 'Unknown error occurred',
                     style: TextStyle(
                       color: Colors.red.shade700,
                       fontSize: 12,

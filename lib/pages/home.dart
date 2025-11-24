@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'package:budget_gov/model/dep_details.dart';
+import 'package:budget_gov/model/exp.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_list.dart';
 import 'package:budget_gov/service/dep_service.dart';
 import 'package:budget_gov/model/reg_list.dart';
 import 'package:budget_gov/service/budgets_service.dart';
 import 'package:budget_gov/service/reg_list_service.dart';
+import 'package:budget_gov/service/exp_service.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
 import 'package:budget_gov/components/header.dart';
 import 'package:budget_gov/components/dep_cards.dart';
 import 'package:budget_gov/components/reg_cards.dart';
+import 'package:budget_gov/components/exp_cards.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -56,10 +59,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedYear = '2025';
   List<ListOfAllDepartmets> _departments = [];
   List<ListOfRegions> _regions = [];
+  List<Expense> _expenses = [];
   bool _isLoading = false;
   bool _isRegionsLoading = false;
+  bool _isExpensesLoading = false;
   String? _errorMessage;
   String? _regionsErrorMessage;
+  String? _expensesErrorMessage;
   int _totalNepBudget = 0;
   int _totalDepartments = 0;
   int _totalProjects = 0;
@@ -71,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final Map<String, _BudgetData> _cache = {};
   final Map<String, List<ListOfRegions>> _regionsCache = {};
+  final Map<String, List<Expense>> _expensesCache = {};
 
   @override
   void initState() {
@@ -83,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       _fetchDepartments();
       _fetchRegions();
+      _fetchExpenses();
     }
   }
 
@@ -98,6 +106,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (regionsCacheString != null) {
       final Map<String, dynamic> decodedMap = jsonDecode(regionsCacheString);
       _regionsCache.addAll(decodedMap.map((key, value) => MapEntry(key, (value as List).map((i) => ListOfRegions.fromJson(i)).toList())));
+    }
+
+    final expensesCacheString = prefs.getString('expenses_cache');
+    if (expensesCacheString != null) {
+      final Map<String, dynamic> decodedMap = jsonDecode(expensesCacheString);
+      _expensesCache.addAll(decodedMap.map((key, value) => MapEntry(key, (value as List).map((i) => Expense.fromJson(i)).toList())));
     }
   }
 
@@ -271,6 +285,48 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.setString('regions_cache', encodedMap);
   }
 
+  Future<void> _fetchExpenses() async {
+    final cacheKey = '$_selectedYear-NEP';
+
+    if (_expensesCache.containsKey(cacheKey)) {
+      final cachedExpenses = _expensesCache[cacheKey]!;
+      setState(() {
+        _expenses = cachedExpenses;
+        _isExpensesLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isExpensesLoading = true;
+      _expensesErrorMessage = null;
+    });
+
+    try {
+      final expenses = await fetchExpenseCategories(
+        year: _selectedYear,
+      );
+
+      _expensesCache[cacheKey] = expenses;
+      _saveExpensesCacheToDisk();
+      setState(() {
+        _expenses = expenses;
+        _isExpensesLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _expensesErrorMessage = e.toString();
+        _isExpensesLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveExpensesCacheToDisk() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encodedMap = jsonEncode(_expensesCache.map((key, value) => MapEntry(key, value.map((e) => e.toJson()).toList())));
+    await prefs.setString('expenses_cache', encodedMap);
+  }
+
   void _onYearChanged(String? newValue) {
     if (newValue != null && newValue != _selectedYear) { 
       setState(() => _selectedYear = newValue);
@@ -322,6 +378,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedYear: _selectedYear,
                 ),
               ),
+              const SizedBox(height: 21),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: ExpenseCards(
+                  isLoading: _isExpensesLoading,
+                  errorMessage: _expensesErrorMessage,
+                  expenses: _expenses,
+                  selectedYear: _selectedYear,
+                ),
+              ),
               const SizedBox(height: 40),
             ],
           ),
@@ -334,6 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.wait([
       _fetchDepartments(),
       _fetchRegions(),
+      _fetchExpenses(),
     ]);
   }
 
@@ -538,7 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color accentColor,
   }) {
     return Container(
-      height: 150,
+      height: 160,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,

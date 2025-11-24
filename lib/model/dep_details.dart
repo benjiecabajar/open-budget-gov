@@ -1,5 +1,4 @@
 import 'package:budget_gov/model/funds_sources.dart';
-import 'package:budget_gov/model/expenses.dart';
 class DepartmentDetails {
   final String code;
   final String description;
@@ -18,8 +17,8 @@ class DepartmentDetails {
   final BudgetComparison budgetComparison;
   final List<RegionBudget> regions;
   final List<ProjectItem> projects; 
-  final List<FundSource> fundingSources;
-  final List<Expense> expenseClassifications;
+  final List<FundSource> fundingSources; 
+  final List<ExpenseCategory> expenseClassifications;
 
   DepartmentDetails({
     required this.code,
@@ -40,7 +39,7 @@ class DepartmentDetails {
     required this.regions,
     required this.projects,
     required this.fundingSources,
-    required this.expenseClassifications, // Keep this as ListItem for now
+    required this.expenseClassifications,
   });
 
   factory DepartmentDetails.fromJson(Map<String, dynamic> json) =>
@@ -87,7 +86,9 @@ class DepartmentDetails {
         fundingSources: (json['fundingSources'] as List<dynamic>? ?? [])
             .map((e) => FundSource.fromJson(e as Map<String, dynamic>))
             .toList(),
-        expenseClassifications: [], // Expense objects are fetched separately
+        expenseClassifications: (json['expenseClassifications'] as List<dynamic>? ?? [])
+            .map((e) => ExpenseCategory.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -110,7 +111,7 @@ class DepartmentDetails {
         'regions': regions.map((r) => r.toJson()).toList(),
         'projects': projects.map((p) => p.toJson()).toList(),
         'fundingSources': fundingSources.map((f) => f.toJson()).toList(),
-        'expenseClassifications': [], // Expense objects are fetched separately
+        'expenseClassifications': expenseClassifications.map((e) => e.toJson()).toList(),
       };
 }
 
@@ -143,6 +144,34 @@ class Agency {
         if (uacsCode != null) 'uacsCode': uacsCode,
         'nep': nep.toJson(),
         'gaa': gaa.toJson(),
+      };
+}
+
+class ExpenseCategory {
+  final String code;
+  final String description;
+  final num budget;
+  final num budgetPesos;
+
+  ExpenseCategory({
+    required this.code,
+    required this.description,
+    required this.budget,
+    required this.budgetPesos,
+  });
+
+  factory ExpenseCategory.fromJson(Map<String, dynamic> json) => ExpenseCategory(
+        code: json['code'] as String,
+        description: json['description'] as String,
+        budget: json['budget'] as num? ?? 0,
+        budgetPesos: json['budgetPesos'] as num? ?? 0,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'code': code,
+        'description': description,
+        'budget': budget,
+        'budgetPesos': budgetPesos,
       };
 }
 

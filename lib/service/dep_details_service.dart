@@ -51,6 +51,7 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
   final nepFundingSourceMap = {for (var fs in nepDetails.fundingSources) fs.uacsCode: fs};
   final nepOuMap = {for (var ou in nepDetails.operatingUnitClasses) ou.code: ou};
   final nepRegionMap = {for (var region in nepDetails.regions) region.code: region};
+  final nepExpenseMap = {for (var exp in nepDetails.expenseClassifications) exp.code: exp};
 
   // Merge Agency budgets
   final combinedAgencies = gaaDetails.agencies.map((gaaAgency) {
@@ -105,6 +106,16 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     percentChange = (differenceAmountPesos / nepAmountPesos) * 100;
   }
 
+  // Merge Expense Classifications
+  final combinedExpenses = gaaDetails.expenseClassifications.map((gaaExpense) {
+    final nepExpense = nepExpenseMap[gaaExpense.code];
+    return ExpenseCategory(
+      code: gaaExpense.code,
+      description: gaaExpense.description,
+      budget: nepExpense?.budget ?? 0, // NEP budget
+      budgetPesos: gaaExpense.budgetPesos, // GAA budget
+    );
+  }).toList();
   // Return a new DepartmentDetails object with the merged lists
   // We use gaaDetails as the base for top-level info like totalBudget
   return DepartmentDetails(
@@ -123,8 +134,8 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     operatingUnitClasses: combinedOperatingUnits,
     regions: combinedRegions, // Use merged regions
     projects: gaaDetails.projects, // Assuming projects are the same for NEP and GAA
-    fundingSources: combinedFundingSources,
-    expenseClassifications: gaaDetails.expenseClassifications,
+    fundingSources: combinedFundingSources, 
+    expenseClassifications: combinedExpenses,
     statistics: gaaDetails.statistics, 
     budgetComparison: BudgetComparison(
       nep: nepDetails.budgetComparison.nep,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/reg_list.dart';
 
-class RegionalBudgetCards extends StatelessWidget {
+class RegionalBudgetCards extends StatefulWidget {
   final bool isLoading;
   final String? errorMessage;
   final List<ListOfRegions> regions;
@@ -14,6 +14,13 @@ class RegionalBudgetCards extends StatelessWidget {
     required this.regions,
     required this.selectedYear,
   });
+
+  @override
+  State<RegionalBudgetCards> createState() => _RegionalBudgetCardsState();
+}
+
+class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +55,7 @@ class RegionalBudgetCards extends StatelessWidget {
   }
 
   Widget _buildContent() {
-    if (isLoading) {
+    if (widget.isLoading) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(48.0),
@@ -81,17 +88,31 @@ class RegionalBudgetCards extends StatelessWidget {
           ),
         ),
       );
-    } else if (errorMessage != null) {
+    } else if (widget.errorMessage != null) {
       return _buildErrorCard();
-    } else if (regions.isNotEmpty) {
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: regions.length,
-        itemBuilder: (context, index) {
-          final region = regions[index];
-          return _buildRegionCard(context, region);
-        },
+    } else if (widget.regions.isNotEmpty) {
+      final bool isCollapsible = widget.regions.length > 5;
+      final List<ListOfRegions> visibleRegions =
+          isCollapsible && !_isExpanded
+              ? widget.regions.take(5).toList()
+              : widget.regions;
+
+      return Column(
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: visibleRegions.length,
+            itemBuilder: (context, index) {
+              final region = visibleRegions[index];
+              return _buildRegionCard(context, region);
+            },
+          ),
+          if (isCollapsible) ...[
+            const SizedBox(height: 10),
+            _buildExpansionButton(),
+          ],
+        ],
       );
     } else {
       return _buildEmptyCard();
@@ -246,7 +267,7 @@ class RegionalBudgetCards extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildStatCard(
-                    "Percentage of Total Budget",
+                    "% of Total Budget",
                     "${region.percentOfTotalBudget.toStringAsFixed(1)}%",
                     Icons.pie_chart_rounded,
                   ),
@@ -466,7 +487,7 @@ class RegionalBudgetCards extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    errorMessage ?? 'Unknown error occurred',
+                    widget.errorMessage ?? 'Unknown error occurred',
                     style: TextStyle(
                       color: Colors.red.shade700,
                       fontSize: 12,
@@ -519,6 +540,34 @@ class RegionalBudgetCards extends StatelessWidget {
           ),
         ),
       );
+
+  Widget _buildExpansionButton() {
+    return TextButton(
+      onPressed: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF1565C0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _isExpanded ? 'Show Less' : 'Show All ${widget.regions.length} Regions',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            const SizedBox(width: 8),
+            Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
+          ],
+        ),
+      ),
+    );
+  }
 
   String _formatNumber(num? number) {
     if (number == null) return "0";
