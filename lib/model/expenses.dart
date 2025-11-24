@@ -26,6 +26,16 @@ class Expense {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'nep': nep.toJson(),
+      'gaa': gaa.toJson(),
+      'subClasses': subClasses.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class ExpenseSubClass {
@@ -53,6 +63,16 @@ class ExpenseSubClass {
           .map((e) => ExpenseGroup.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'nep': nep.toJson(),
+      'gaa': gaa.toJson(),
+      'groups': groups.map((e) => e.toJson()).toList(),
+    };
   }
 }
 
@@ -82,6 +102,16 @@ class ExpenseGroup {
           .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'nep': nep.toJson(),
+      'gaa': gaa.toJson(),
+      'objects': objects.map((e) => e.toJson()).toList(),
+    };
+  }
 }
 
 class ExpenseObject {
@@ -104,5 +134,14 @@ class ExpenseObject {
       nep: Money.fromJson(json['nep'] as Map<String, dynamic>),
       gaa: Money.fromJson(json['gaa'] as Map<String, dynamic>),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'description': description,
+      'nep': nep.toJson(),
+      'gaa': gaa.toJson(),
+    };
   }
 }

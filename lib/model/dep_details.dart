@@ -1,4 +1,5 @@
 import 'package:budget_gov/model/funds_sources.dart';
+import 'package:budget_gov/model/expenses.dart';
 class DepartmentDetails {
   final String code;
   final String description;
@@ -18,7 +19,7 @@ class DepartmentDetails {
   final List<RegionBudget> regions;
   final List<ProjectItem> projects; 
   final List<FundSource> fundingSources;
-  final List<ListItem> expenseClassifications;
+  final List<Expense> expenseClassifications;
 
   DepartmentDetails({
     required this.code,
@@ -86,11 +87,7 @@ class DepartmentDetails {
         fundingSources: (json['fundingSources'] as List<dynamic>? ?? [])
             .map((e) => FundSource.fromJson(e as Map<String, dynamic>))
             .toList(),
-            
-        expenseClassifications:
-            (json['expenseClassifications'] as List<dynamic>? ?? [])
-                .map((e) => ListItem.fromJson(e as Map<String, dynamic>))
-                .toList(),
+        expenseClassifications: [], // Expense objects are fetched separately
       );
 
   Map<String, dynamic> toJson() => {
@@ -113,8 +110,7 @@ class DepartmentDetails {
         'regions': regions.map((r) => r.toJson()).toList(),
         'projects': projects.map((p) => p.toJson()).toList(),
         'fundingSources': fundingSources.map((f) => f.toJson()).toList(),
-        'expenseClassifications':
-            expenseClassifications.map((e) => e.toJson()).toList(),
+        'expenseClassifications': [], // Expense objects are fetched separately
       };
 }
 

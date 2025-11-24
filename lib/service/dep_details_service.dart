@@ -41,8 +41,10 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     fetchDepartmentDetails(code: code, year: year, type: 'NEP'),
     fetchDepartmentDetails(code: code, year: year, type: 'GAA'),
   ]);
+
   final nepDetails = results[0];
   final gaaDetails = results[1];
+
 
   // Create maps for quick lookups
   final nepAgencyMap = {for (var agency in nepDetails.agencies) agency.uacsCode: agency};
@@ -121,15 +123,15 @@ Future<DepartmentDetails> _fetchAndCombineBudgets(String code, String year) asyn
     operatingUnitClasses: combinedOperatingUnits,
     regions: combinedRegions, // Use merged regions
     projects: gaaDetails.projects, // Assuming projects are the same for NEP and GAA
-    fundingSources: combinedFundingSources, // Use merged funding sources
-    expenseClassifications:
-        gaaDetails.expenseClassifications, 
+    fundingSources: combinedFundingSources,
+    expenseClassifications: gaaDetails.expenseClassifications,
     statistics: gaaDetails.statistics, 
     budgetComparison: BudgetComparison(
       nep: nepDetails.budgetComparison.nep,
       gaa: gaaDetails.budgetComparison.gaa,
       difference: Difference(
-        amount: gaaDetails.totalBudgetGaa - nepDetails.totalBudget,
+        amount: gaaDetails.budgetComparison.gaa.amount -
+            nepDetails.budgetComparison.nep.amount,
         amountPesos: differenceAmountPesos,
         percentChange: percentChange,
       ),
@@ -171,7 +173,12 @@ Future<DepartmentDetails> _fetchFromApi(String code, String year, String? type, 
     } catch (e) {
       // Ignore caching errors
     }
-    return DepartmentDetails.fromJson(jsonDecode(response.body));
+    final decoded = jsonDecode(response.body);
+    final details = DepartmentDetails.fromJson(decoded);
+
+    // Since expenseClassifications is now List<Expense>, we need to handle it.
+    // The details endpoint seems to return a simpler list. We'll fetch detailed expenses separately.
+    return details;
   } else {
     throw Exception('Failed to load department details: ${response.statusCode}');
   }

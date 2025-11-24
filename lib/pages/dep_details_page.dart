@@ -1,8 +1,10 @@
 import 'package:budget_gov/model/funds_sources.dart';
+import 'package:budget_gov/service/fund_sources_service.dart';
 import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_details.dart';
+import 'package:budget_gov/service/expenses_service.dart';
+import 'package:budget_gov/model/expenses.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
-import 'package:budget_gov/service/fund_sources_service.dart';
 
 // Already imported, but good to confirm
 
@@ -24,14 +26,18 @@ class DepartmentDetailsPage extends StatefulWidget {
 
 class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 	late Future<DepartmentDetails> _detailsFuture;
+  late Future<List<Expense>> _expensesFuture;
 
 	@override
 	void initState() {
 		super.initState();
 		_detailsFuture = fetchDepartmentDetails(
 			code: widget.departmentCode,
-			year: widget.year, combineBudgets: true,
+			year: widget.year,
+      combineBudgets: true,
 		);
+    _expensesFuture = fetchExpenseCategories(
+        year: widget.year, departmentCode: widget.departmentCode);
 	}
 
 	@override
@@ -93,7 +99,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 									_buildSectionTitle('Funding Sources'),
 									_buildFundingSources(details),
 									const SizedBox(height: 24),
-									_buildSectionTitle('Expense Categories'),
+									_buildSectionTitle('Expense Classifications'),
 									_buildExpenseCategories(details),
 								],
 							),
@@ -267,7 +273,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 				children: [
 					Text(agency.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
 					const SizedBox(height: 2),
-					Text('Code: ${agency.code}}',
+					Text('Code: ${agency.code}',
 							style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
 					const SizedBox(height: 8),
 					Row(
@@ -564,21 +570,101 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 			},
 		);
 	}
-  
 
   Widget _buildExpenseCategories(DepartmentDetails details) {
-		if (details.expenseClassifications.isEmpty) {
-			return _buildEmptyCard('No expense categories found.');
-		}
-		return Column(
-			children: details.expenseClassifications.map((ec) => _buildInfoCard(
-				title: ec.description,
-				subtitle: 'Code: ${ec.code}',
-				trailing: _formatLargeNumber(ec.gaa.amountPesos),
-				icon: Icons.category_rounded,
-				color: const Color(0xFF64B5F6),
-			)).toList(),
-		);
+    return FutureBuilder<List<Expense>>(
+      future: _expensesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return _buildEmptyCard('Could not load expense categories.');
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyCard('No expense categories found.');
+        }
+
+        final expenses = snapshot.data!;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Detailed breakdown by expense category',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            const SizedBox(height: 10),
+            ...expenses.map((expense) => _buildExpenseCard(expense)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildExpenseCard(Expense expense) {
+    return Card(
+      margin: const EdgeInsets.only(top: 10),
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        title: Text(expense.description, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0D47A1))),
+        subtitle: Text('${expense.subClasses.length} sub-classifications', style: TextStyle(color: Colors.grey[600])),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildBudgetColumn('NEP Budget', expense.nep.amountPesos, Colors.blueGrey)),
+                    Expanded(child: _buildBudgetColumn('GAA Budget', expense.gaa.amountPesos, const Color(0xFF1565C0))),
+                  ],
+                ),
+                const Divider(height: 20),
+                ...expense.subClasses.map((subClass) => _buildSubClassTile(subClass)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubClassTile(ExpenseSubClass subClass) {
+    return ExpansionTile(
+      title: Text(subClass.description, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+      subtitle: Text('${subClass.groups.length} groups', style: TextStyle(color: Colors.grey[600])),
+      childrenPadding: const EdgeInsets.only(left: 16, bottom: 10),
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('NEP: ${_formatLargeNumber(subClass.nep.amountPesos)}', style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+            Expanded(child: Text('GAA: ${_formatLargeNumber(subClass.gaa.amountPesos)}', textAlign: TextAlign.end, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ...subClass.groups.map((group) => _buildGroupTile(group)),
+      ],
+    );
+  }
+
+  Widget _buildGroupTile(ExpenseGroup group) {
+    return ExpansionTile(
+      title: Text(group.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+      subtitle: Text('${group.objects.length} objects', style: TextStyle(color: Colors.grey[600])),
+      childrenPadding: const EdgeInsets.only(left: 16, bottom: 10, right: 16),
+      children: group.objects.map((object) => Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(object.description, style: const TextStyle(fontSize: 12))),
+            Text(_formatLargeNumber(object.gaa.amountPesos), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      )).toList(),
+    );
   }
 
 
@@ -632,49 +718,4 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 		if (absNumber >= 1e6) return '$sign₱${(absNumber / 1e6).toStringAsFixed(2)}M';
 		return '$sign₱${number.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
 	}
-}
-
-Widget _buildInfoCard({
-  required String title,
-  String? subtitle,
-  String? trailing,
-  Widget? trailingWidget,
-  IconData? icon,
-  Color? color,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(top: 10),
-    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: (color ?? Colors.grey).withOpacity(0.08), width: 1),
-      boxShadow: [
-        BoxShadow(color: (color ?? Colors.grey).withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 2)),
-      ],
-    ),
-    child: Row(
-      children: [
-        if (icon != null) ...[
-          Icon(icon, color: color ?? Colors.blue, size: 24),
-          const SizedBox(width: 12),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0D47A1))),
-              if (subtitle != null && subtitle.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
-              ],
-            ],
-          ),
-        ),
-        if (trailingWidget != null) trailingWidget,
-        if (trailing != null && trailing.isNotEmpty && trailingWidget == null)
-          Text(trailing, style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w700)),
-      ],
-    ),
-  );
 }
