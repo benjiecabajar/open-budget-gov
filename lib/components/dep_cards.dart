@@ -23,681 +23,604 @@ class DepartmentCards extends StatefulWidget {
 }
 
 class _DepartmentCardsState extends State<DepartmentCards> {
-  final Map<String, bool> _isCardExpanded = {};
   bool _isExpanded = false;
+  final Map<String, bool> _isCardExpanded = {};
+  String? _loadingDeptCode;
+
+  // Modern color palette
+  final Color _primaryColor = const Color(0xFF0F4C81); // Deep navy blue
+  final Color _secondaryColor = const Color(0xFF2E8BC0); // Ocean blue
+  final Color _accentColor = const Color(0xFF00B4D8); // Vibrant teal
+  final Color _successColor = const Color(0xFF2E8B57); // Sea green
+  final Color _errorColor = const Color(0xFFDC143C); // Crimson red
+  final Color _surfaceColor = Colors.white;
+  final Color _backgroundColor = const Color(0xFFF8FAFC); // Light gray background
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 1),
-          const Text(
-            "Budget by Department",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0D47A1),
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "All departments with budget allocation",
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _buildContent(),
-        ],
+    return Container(
+      decoration: BoxDecoration(
+        color: _backgroundColor,
+        borderRadius: BorderRadius.circular(16),
       ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section
+            _buildHeader(),
+            const SizedBox(height: 24),
+            
+            // Content Section
+            _buildContent(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [            
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Budget by Department",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: _primaryColor,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "All departments with budget allocation",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        
+        // Divider
+        const SizedBox(height: 20),
+        Divider(
+          color: Colors.grey[300],
+          height: 1,
+        ),
+      ],
     );
   }
 
   Widget _buildContent() {
     if (widget.isLoading) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48.0),
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF1565C0),
-                    strokeWidth: 3,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading...',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildLoadingState();
     } else if (widget.errorMessage != null) {
-      return _buildErrorCard();
+      return _buildErrorState();
     } else if (widget.departments.isNotEmpty) {
-      final bool isCollapsible = widget.departments.length > 5;
-      final List<ListOfAllDepartmets> visibleDepartments =
-          isCollapsible && !_isExpanded
-              ? widget.departments.take(5).toList()
-              : widget.departments;
-
-      return Column(
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: visibleDepartments.length,
-            itemBuilder: (context, index) {
-              final dept = visibleDepartments[index];
-              return _buildDepartmentCard(context, dept);
-            },
-          ),
-          if (isCollapsible) ...[
-            const SizedBox(height: 10),
-            _buildExpansionButton(),
-          ],
-        ],
-      );
+      return _buildDepartmentList();
     } else {
-      return _buildEmptyCard();
+      return _buildEmptyState();
     }
   }
 
-  Widget _buildDepartmentCard(BuildContext context, ListOfAllDepartmets dept) {
-    final nepBudget = widget.selectedType == 'NEP' ? dept.totalBudgetPesos : (dept.totalBudgetGaaPesos / (1 + (dept.percentDifferenceNepGaa) / 100)).round();
-    final gaaBudget = dept.totalBudgetGaaPesos;
-    final difference = gaaBudget - nepBudget;
-    final change = dept.percentDifferenceNepGaa;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF1565C0).withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          splashColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-          focusColor: Colors.transparent,
-        ),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          shape: const Border(),
-          collapsedShape: const Border(),
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1565C0).withOpacity(0.15),
-                  const Color(0xFF1E88E5).withOpacity(0.1),
-                ],
-              ), 
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.corporate_fare_rounded,
-              color: Color(0xFF1565C0),
-              size: 20,
-            ),
-          ),
-          title: Text(
-            dept.description,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 15,
-              color: Color(0xFF0D47A1),
-              letterSpacing: -0.2,
-              height: 1.3,
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1565C0).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    "code: ${dept.code}",
-                    style: const TextStyle(
-                      color: Color(0xFF1565C0), 
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    _formatLargeNumber(nepBudget),
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          onExpansionChanged: (isExpanded) {
-            setState(() {
-              _isCardExpanded[dept.code] = isExpanded;
-            });
-          },
-          trailing: RotationTransition(
-            turns: AlwaysStoppedAnimation((_isCardExpanded[dept.code] ?? false) ? 0.5 : 0),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1565C0).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Color(0xFF1565C0),
-                size: 20,
-              ),
-            ),
-          ),
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
           children: [
-            const SizedBox(height: 12),
-            _buildBudgetCards(nepBudget, gaaBudget),
-            const SizedBox(height: 12),
-            _buildInsertionsCard(difference, change),
-            const SizedBox(height: 12),
-            _buildAgenciesCard(dept.totalAgencies),
-            const SizedBox(height: 16),
-            _buildViewDetailsButton(context, dept),
+            // Animated loading container
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _surfaceColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryColor.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Background pulse animation
+                  TweenAnimationBuilder(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 1500),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 60 + (20 * value),
+                        height: 60 + (20 * value),
+                        decoration: BoxDecoration(
+                          color: _primaryColor.withOpacity(0.05 * (1 - value)),
+                          shape: BoxShape.circle,
+                        ),
+                      );
+                    },
+                  ),
+                  
+                  // Main spinner
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+                    strokeWidth: 3,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Loading Department Data',
+              style: TextStyle(
+                color: _primaryColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please wait while we fetch the latest budget information',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBudgetCards(int nepBudget, int gaaBudget) {
+  Widget _buildDepartmentList() {
+    final bool isCollapsible = widget.departments.length > 5;
+    final List<ListOfAllDepartmets> visibleDepartments = isCollapsible && !_isExpanded
+        ? widget.departments.take(5).toList()
+        : widget.departments;
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visibleDepartments.length,
+          itemBuilder: (context, index) {
+            final dept = visibleDepartments[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildDepartmentCard(dept),
+            );
+          },
+        ),
+        if (isCollapsible) ...[
+          const SizedBox(height: 24),
+          _buildExpansionButton(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDepartmentCard(ListOfAllDepartmets dept) {
+    final nepBudget = widget.selectedType == 'NEP'
+        ? dept.totalBudgetPesos
+        : (dept.totalBudgetGaaPesos / (1 + (dept.percentDifferenceNepGaa) / 100)).round();
+    final gaaBudget = dept.totalBudgetGaaPesos;
+    final difference = gaaBudget - nepBudget;
+    final change = dept.percentDifferenceNepGaa;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _primaryColor.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          //animationDuration: const Duration(milliseconds: 350),
+          tilePadding: const EdgeInsets.all(20),
+          onExpansionChanged: (isExpanded) {
+            setState(() {
+              _isCardExpanded[dept.code] = isExpanded;
+            });
+          },
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
+          ),
+          title: Text(
+            dept.description,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+              height: 1.3,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Text(
+              'Code: ${dept.code}',
+              style: TextStyle(
+                color: _primaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          trailing: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: (_isCardExpanded[dept.code] ?? false) ? 0.5 : 0.0),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, child) => RotationTransition(
+              turns: AlwaysStoppedAnimation(value),
+              child: child,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.keyboard_arrow_down_rounded, color: _primaryColor, size: 20),
+            ),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                children: [
+                  const Divider(height: 20),
+                  _buildBudgetInfo(nepBudget, gaaBudget),
+                  const SizedBox(height: 16),
+                  _buildStatRow(dept),
+                  const SizedBox(height: 16),
+                  _buildChangeIndicator(difference, change),
+                  const SizedBox(height: 20),
+                  _buildCardActionButton(dept),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(ListOfAllDepartmets dept) {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1565C0).withOpacity(0.08),
-                  const Color(0xFF1E88E5).withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF1565C0).withOpacity(0.15),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1565C0),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'NEP ${widget.selectedYear}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _formatLargeNumber(nepBudget),
-                  style: const TextStyle(
-                    color: Color(0xFF1565C0),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
+          child: _buildStatItem(
+            '% of Total Budget',
+            '${dept.percentOfTotalBudget.toStringAsFixed(2)}%',
+            Icons.pie_chart_outline_rounded,
+            _secondaryColor,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1E88E5).withOpacity(0.08),
-                  const Color(0xFF42A5F5).withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF1E88E5).withOpacity(0.15),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF1E88E5),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'GAA ${widget.selectedYear}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _formatLargeNumber(gaaBudget),
-                  style: const TextStyle(
-                    color: Color(0xFF1E88E5),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
+          child: _buildStatItem(
+            'Agencies',
+            dept.totalAgencies.toString(),
+            Icons.business_rounded,
+            _primaryColor,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInsertionsCard(int difference, double change) {
-    final isPositive = difference >= 0;
-    final color = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
-    final bgColor = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: bgColor.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: bgColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-              color: color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Budget Insertions',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '${difference >= 0 ? '+' : ''}${_formatLargeNumber(difference)}',
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: bgColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+      ],
     );
   }
 
-  Widget _buildAgenciesCard(int totalAgencies) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1565C0).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF1565C0).withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1565C0).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.business_rounded,
-              color: Color(0xFF1565C0),
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
+  Widget _buildBudgetInfo(int nepBudget, int gaaBudget) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Total Agencies',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$totalAgencies',
-                style: const TextStyle(
-                  color: Color(0xFF1565C0),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
+              Text('NEP ${widget.selectedYear}', style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+              Text(_formatLargeNumber(nepBudget), style: TextStyle(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
             ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('GAA ${widget.selectedYear}', style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+              Text(_formatLargeNumber(gaaBudget), style: TextStyle(color: _secondaryColor, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChangeIndicator(int difference, double change) {
+    final isPositive = difference >= 0;
+    final color = isPositive ? _successColor : _errorColor;
+    final icon = isPositive ? Icons.trending_up : Icons.trending_down;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${isPositive ? '+' : ''}${_formatLargeNumber(difference)}',
+              style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%',
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildViewDetailsButton(BuildContext context, ListOfAllDepartmets dept) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
-        ),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DepartmentDetailsPage(
-                departmentCode: dept.code,
-                departmentDescription: dept.description,
-                year: widget.selectedYear,
+  Widget _buildCardActionButton(ListOfAllDepartmets dept) {
+    final bool isLoading = _loadingDeptCode == dept.code;
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: isLoading ? null : () => _navigateToDetails(dept),
+        icon: isLoading
+            ? Container()
+            : Icon(Icons.open_in_new_rounded, size: 16, color: _surfaceColor),
+        label: isLoading
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: _surfaceColor),
+              )
+            : Text(
+                'View Full Details',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _surfaceColor),
               ),
-            ),
-          );
-        },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          minimumSize: const Size(double.infinity, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'View Full Details',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.3,
-              ),
-            ),
-            SizedBox(width: 6),
-            Icon(Icons.arrow_forward_rounded, size: 18),
-          ],
+          backgroundColor: _primaryColor,
+          foregroundColor: _surfaceColor,
+          disabledBackgroundColor: _primaryColor.withOpacity(0.7),
+          elevation: 2,
+          shadowColor: _primaryColor.withOpacity(0.3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );
   }
 
   Widget _buildExpansionButton() {
-    return TextButton(
-      onPressed: () {
-        setState(() {
-          _isExpanded = !_isExpanded;
-        });
-      },
-      style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFF1565C0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          setState(() {
+            _isExpanded = !_isExpanded;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _surfaceColor,
+          foregroundColor: _primaryColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _isExpanded ? 'Show Less' : 'Show All ${widget.departments.length} Departments',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
             const SizedBox(width: 8),
-            Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
+            Icon(
+              _isExpanded ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildErrorCard() => Container(
-        margin: const EdgeInsets.symmetric(vertical: 16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: Colors.red.shade200,
-            width: 1,
+  Widget _buildErrorState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _errorColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            color: _errorColor,
+            size: 48,
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
+          const SizedBox(height: 16),
+          Text(
+            'Unable to Load Data',
+            style: TextStyle(
+              color: _errorColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.errorMessage ?? 'Please try again later',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // Add retry logic here
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _errorColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.error_outline_rounded,
-                color: Colors.red.shade700,
-                size: 24,
-              ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Error Loading Data',
-                    style: TextStyle(
-                      color: Colors.red.shade900,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.errorMessage ?? 'Unknown error occurred',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: _surfaceColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryColor.withOpacity(0.1),
+                    blurRadius: 20,
                   ),
                 ],
               ),
+              child: Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Departments Found',
+              style: TextStyle(
+                color: _primaryColor,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try selecting a different year or budget type',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
 
-  Widget _buildEmptyCard() => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.inbox_rounded,
-                  size: 48,
-                  color: Colors.grey.shade400,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No Departments Found',
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Try selecting a different year',
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+  void _navigateToDetails(ListOfAllDepartmets dept) async {
+    setState(() {
+      _loadingDeptCode = dept.code;
+    });
+    
+    await Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => DepartmentDetailsPage(
+          departmentCode: dept.code,
+          departmentDescription: dept.description,
+          year: widget.selectedYear,
         ),
-      );
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    );
+    
+    if (mounted) {
+      setState(() {
+        _loadingDeptCode = null;
+      });
+    }
+  }
 
   String _formatNumber(num? number) {
     if (number == null) return "0";
     return number.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
- 
+
   String _formatLargeNumber(num? number) {
     if (number == null || number == 0) return '₱0';
     if (number >= 1e12) return '₱${(number / 1e12).toStringAsFixed(2)}T';

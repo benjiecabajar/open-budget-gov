@@ -21,6 +21,16 @@ class RegionalBudgetCards extends StatefulWidget {
 
 class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
   bool _isExpanded = false;
+  final Map<String, bool> _isCardExpanded = {};
+
+  // Modern color palette from dep_cards.dart
+  final Color _primaryColor = const Color(0xFF0F4C81); // Deep navy blue
+  final Color _secondaryColor = const Color(0xFF2E8BC0); // Ocean blue
+  final Color _accentColor = const Color(0xFF00B4D8); // Vibrant teal
+  final Color _successColor = const Color(0xFF2E8B57); // Sea green
+  final Color _errorColor = const Color(0xFFDC143C); // Crimson red
+  final Color _surfaceColor = Colors.white;
+// Light gray background
 
   @override
   Widget build(BuildContext context) {
@@ -29,23 +39,28 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Regional Budget Distribution",
             style: TextStyle(
               fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0D47A1),
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.w700,
+              color: _primaryColor,
+              letterSpacing: -0.3,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             "Budget allocation across all regions",
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
-              height: 1.5,
+              height: 1.4,
             ),
+          ),
+          const SizedBox(height: 20),
+          Divider(
+            color: Colors.grey[300],
+            height: 1,
           ),
           const SizedBox(height: 10),
           _buildContent(),
@@ -56,40 +71,9 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
 
   Widget _buildContent() {
     if (widget.isLoading) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(48.0),
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1565C0).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF1565C0),
-                    strokeWidth: 3,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Loading...',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildLoadingState();
     } else if (widget.errorMessage != null) {
-      return _buildErrorCard();
+      return _buildErrorState();
     } else if (widget.regions.isNotEmpty) {
       final bool isCollapsible = widget.regions.length > 5;
       final List<ListOfRegions> visibleRegions =
@@ -105,25 +89,27 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
             itemCount: visibleRegions.length,
             itemBuilder: (context, index) {
               final region = visibleRegions[index];
-              return _buildRegionCard(context, region);
+              return Padding( 
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _buildRegionCard(region),
+              );
             },
           ),
           if (isCollapsible) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 24),
             _buildExpansionButton(),
           ],
         ],
       );
     } else {
-      return _buildEmptyCard();
+      return _buildEmptyState();
     }
   }
 
-  Widget _buildRegionCard(BuildContext context, ListOfRegions region) {
+  Widget _buildRegionCard(ListOfRegions region) {
     final difference = region.totalBudgetGaaPesos - region.totalBudgetPesos;
     final change = region.percentDifferenceNepGaa;
 
- 
     String description;
     switch (region.code) {
       case '01':
@@ -132,8 +118,8 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       case '02':
         description = 'Region II - Cagayan Valley';
         break;
-      case '03':
-        description = 'Region II (Cagayan Valley)';
+      case '03': // Corrected from 'Region II' to 'Region III'
+        description = 'Region III - Central Luzon';
         break;
       case '04':
         description = 'Region IV-A - CALABARZON';
@@ -165,17 +151,17 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       case '13':
         description = 'National Capital Region (NCR)';
         break;
-      case '14':
+      case '14': // Corrected from 'Cordillera Administrative Region (CAR)'
         description = 'Cordillera Administrative Region (CAR)';
         break;
-      case '15':
-        description = 'Autonomous Region in Muslim Mindanao (ARMM)';
+      case '15': 
+        description = 'Autonomous Region In Nuslim Mindanao (ARMM)';
         break;
       case '16':
         description = 'Region XIII - Caraga';
         break;
       case '17':
-        description = 'Region IVB - MIMAROPA';
+        description = 'Region IV-B - MIMAROPA';
         break;
       case '18':
         description = 'Negros Island Region';
@@ -188,91 +174,74 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF1565C0).withOpacity(0.1),
-          width: 1,
-        ),
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.08),
-            blurRadius: 16,
+            color: _primaryColor.withOpacity(0.08),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF1565C0).withOpacity(0.15),
-                        const Color(0xFF1E88E5).withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.map_rounded,
-                    color: Color(0xFF1565C0),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                          color: Color(0xFF0D47A1),
-                          letterSpacing: -0.2,
-                          height: 1.3,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Region ${region.code}",
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.all(20),
+          onExpansionChanged: (isExpanded) {
+            setState(() {
+              _isCardExpanded[region.code] = isExpanded;
+            });
+          },
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 16),
-            _buildBudgetCards(region),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildChangeCard(difference, change.toDouble())),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildStatCard(
-                    "% of Total Budget",
-                    "${region.percentOfTotalBudget.toStringAsFixed(1)}%",
-                    Icons.pie_chart_rounded,
-                  ),
-                ),
-              ],
+            child: const Icon(Icons.map_rounded, color: Colors.white, size: 20),
+          ),
+          title: Text(
+            description,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+              height: 1.3,
+            ),
+          ),
+          trailing: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: (_isCardExpanded[region.code] ?? false) ? 0.5 : 0.0),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, child) => RotationTransition(
+              turns: AlwaysStoppedAnimation(value),
+              child: child,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.keyboard_arrow_down_rounded, color: _primaryColor, size: 20),
+            ),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                children: [
+                  const Divider(height: 20),
+                  _buildBudgetInfo(region.totalBudgetPesos, region.totalBudgetGaaPesos),
+                  const SizedBox(height: 16),
+                  _buildStatRow(region),
+                  const SizedBox(height: 16),
+                  _buildChangeIndicator(difference, change),
+                ],
+              ),
             )
           ],
         ),
@@ -280,181 +249,173 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
     );
   }
 
-  Widget _buildBudgetCards(ListOfRegions region) {
+  Widget _buildStatRow(ListOfRegions region) {
     return Row(
       children: [
-        Expanded(child: _buildStatItem("NEP Budget", _formatLargeNumber(region.totalBudgetPesos))),
-        const SizedBox(width: 10),
-        Expanded(child: _buildStatItem("GAA Budget", _formatLargeNumber(region.totalBudgetGaaPesos), isGaa: true)),
+        Expanded(
+          child: _buildStatItem(
+            '% of Total Budget',
+            '${region.percentOfTotalBudget.toStringAsFixed(2)}%',
+            Icons.pie_chart_outline_rounded,
+            _secondaryColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatItem(
+            'Region Code',
+            region.code,
+            Icons.tag,
+            _primaryColor,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatItem(String title, String value, {bool isGaa = false}) {
-    final baseColor = isGaa ? const Color(0xFF1E88E5) : const Color(0xFF1565C0);
-    final gradientColors = isGaa
-        ? [const Color(0xFF1E88E5).withOpacity(0.08), const Color(0xFF42A5F5).withOpacity(0.05)]
-        : [const Color(0xFF1565C0).withOpacity(0.08), const Color(0xFF1E88E5).withOpacity(0.05)];
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+      ],
+    );
+  }
 
-    return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: gradientColors),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: baseColor.withOpacity(0.15),
-            width: 1,
+  Widget _buildBudgetInfo(int nepBudget, int gaaBudget) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('NEP ${widget.selectedYear}', style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+              Text(_formatLargeNumber(nepBudget), style: TextStyle(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+            ],
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: baseColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('GAA ${widget.selectedYear}', style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w500)),
+              Text(_formatLargeNumber(gaaBudget), style: TextStyle(color: _secondaryColor, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChangeIndicator(num difference, num change) {
+    final isPositive = difference >= 0;
+    final color = isPositive ? _successColor : _errorColor;
+    final icon = isPositive ? Icons.trending_up : Icons.trending_down;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${isPositive ? '+' : ''}${_formatLargeNumber(difference)}',
+              style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                color: baseColor,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}%',
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: _surfaceColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryColor.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  TweenAnimationBuilder(
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 1500),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 60 + (20 * value),
+                        height: 60 + (20 * value),
+                        decoration: BoxDecoration(
+                          color: _primaryColor.withOpacity(0.05 * (1 - value)),
+                          shape: BoxShape.circle,
+                        ),
+                      );
+                    },
+                  ),
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+                    strokeWidth: 3,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Loading Regional Data',
+              style: TextStyle(
+                color: _primaryColor,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please wait while we fetch the latest budget information',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-      );
-  }
-
-  Widget _buildChangeCard(int difference, double change) {
-    final isPositive = difference >= 0;
-    final color = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
-    final bgColor = isPositive ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: bgColor.withOpacity(0.2),
-          width: 1,
-        ),
       ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Change',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: bgColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        '${change >= 0 ? '+' : ''}${change.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${difference >= 0 ? '+' : ''}${_formatLargeNumber(difference)}',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1565C0).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFF1565C0).withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Color(0xFF1565C0),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildErrorCard() => Container(
+  Widget _buildErrorState() => Container(
         margin: const EdgeInsets.symmetric(vertical: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: _errorColor.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: Colors.red.shade200,
+            color: _errorColor.withOpacity(0.2),
             width: 1,
           ),
         ),
@@ -463,12 +424,12 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.red.shade100,
+                color: _errorColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.error_outline_rounded,
-                color: Colors.red.shade700,
+                color: _errorColor,
                 size: 24,
               ),
             ),
@@ -478,18 +439,18 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Error Loading Data',
+                    'Error Loading Regions',
                     style: TextStyle(
-                      color: Colors.red.shade900,
+                      color: _errorColor,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.errorMessage ?? 'Unknown error occurred',
+                    widget.errorMessage ?? 'An unknown error occurred',
                     style: TextStyle(
-                      color: Colors.red.shade700,
+                      color: _errorColor.withOpacity(0.8),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -501,19 +462,26 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
         ),
       );
 
-  Widget _buildEmptyCard() => Center(
+  Widget _buildEmptyState() => Center(
         child: Padding(
-          padding: const EdgeInsets.all(48),
+          padding: const EdgeInsets.symmetric(vertical: 40),
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
+                  color: _surfaceColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryColor.withOpacity(0.1),
+                      blurRadius: 20,
+                    ),
+                  ],
                 ),
                 child: Icon(
-                  Icons.inbox_rounded,
+                  Icons.search_off_rounded,
                   size: 48,
                   color: Colors.grey.shade400,
                 ),
@@ -522,16 +490,16 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
               Text(
                 'No Regions Found',
                 style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  color: _primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Try selecting a different year',
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: Colors.grey[600],
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -542,27 +510,37 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       );
 
   Widget _buildExpansionButton() {
-    return TextButton(
-      onPressed: () {
-        setState(() {
-          _isExpanded = !_isExpanded;
-        });
-      },
-      style: TextButton.styleFrom(
-        foregroundColor: const Color(0xFF1565C0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Center(
+      child: ElevatedButton(
+        onPressed: () {
+          setState(() {
+            _isExpanded = !_isExpanded;
+          });
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _surfaceColor,
+          foregroundColor: _primaryColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               _isExpanded ? 'Show Less' : 'Show All ${widget.regions.length} Regions',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
             const SizedBox(width: 8),
-            Icon(_isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
+            Icon(
+              _isExpanded ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+            ),
           ],
         ),
       ),
@@ -576,13 +554,12 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
           (Match m) => '${m[1]},',
         );
   }
- 
+
   String _formatLargeNumber(num? number) {
     if (number == null || number == 0) return '₱0';
     if (number >= 1e12) return '₱${(number / 1e12).toStringAsFixed(2)}T';
     if (number >= 1e9) return '₱${(number / 1e9).toStringAsFixed(2)}B';
     if (number >= 1e6) return '₱${(number / 1e6).toStringAsFixed(2)}M';
-    if (number >= 1e3) return '₱${(number / 1e3).toStringAsFixed(2)}K';
     return '₱${_formatNumber(number)}';
   }
 }

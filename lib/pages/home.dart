@@ -433,7 +433,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
                   width: 1,
@@ -480,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatsGrid() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
           _buildLargeStatCard(
@@ -489,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
             value: _formatLargeNumber(_totalNepBudget),
             subtitle: "National Expenditure Program $_selectedYear",
             gradient: const LinearGradient(
-              colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+              colors: [Color(0xFF0F4C81), Color(0xFF2E8BC0)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -534,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF1565C0).withOpacity(0.4),
@@ -549,7 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               icon,
@@ -605,11 +605,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color accentColor,
   }) {
     return Container(
-      height: 160,
+      height: 165,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: accentColor.withOpacity(0.15),
@@ -634,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       accentColor.withOpacity(0.05),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(7),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
@@ -646,7 +646,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

@@ -716,6 +716,7 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
           splashColor: Colors.transparent,
         ),
 				child: ExpansionTile(
+				//animationDuration: const Duration(milliseconds: 350), // Removed as it's not a valid parameter for ExpansionTile
 					tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 					leading: Container(
 						width: 40,
@@ -739,8 +740,13 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 						_isCardExpanded[title] = isExpanded;
 						});
 					},
-					trailing: RotationTransition(
-						turns: AlwaysStoppedAnimation((_isCardExpanded[title] ?? false) ? 0.5 : 0),
+					trailing: TweenAnimationBuilder<double>(
+						tween: Tween<double>(begin: 0.0, end: (_isCardExpanded[title] ?? false) ? 0.5 : 0.0),
+						duration: const Duration(milliseconds: 300),
+						builder: (context, value, child) => RotationTransition(
+							turns: AlwaysStoppedAnimation(value),
+							child: child,
+						),
 						child: Container(
 							padding: const EdgeInsets.all(8),
 							decoration: BoxDecoration(
