@@ -29,8 +29,13 @@ class _BudgetData {
   final int totalAgencies;
   int totalProjects;
 
-  _BudgetData(
-      {required this.departments, required this.totalNepBudget, required this.totalDepartments, required this.totalAgencies, required this.totalProjects});
+  _BudgetData({
+    required this.departments,
+    required this.totalNepBudget,
+    required this.totalDepartments,
+    required this.totalAgencies,
+    required this.totalProjects,
+  });
 
   factory _BudgetData.fromJson(Map<String, dynamic> json) {
     return _BudgetData(
@@ -78,6 +83,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final Map<String, _BudgetData> _cache = {};
   final Map<String, List<ListOfRegions>> _regionsCache = {};
   final Map<String, List<Expense>> _expensesCache = {};
+
+  // Modern color palette matching DepartmentCards
+  final Color _primaryColor = const Color(0xFF0F4C81);
+  final Color _secondaryColor = const Color(0xFF2E8BC0);
+  final Color _accentColor = const Color(0xFF00B4D8);
+  final Color _surfaceColor = Colors.white;
+  final Color _backgroundColor = const Color(0xFFF8FAFC);
 
   @override
   void initState() {
@@ -129,9 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       _prefetchDepartmentDetails(cachedData.departments);
-
       _calculateTotalProjectsFromDetails(cachedData.departments);
-
       return;
     }
 
@@ -147,16 +157,15 @@ class _HomeScreenState extends State<HomeScreen> {
       ]);
 
       final totalBudgetResult = results[0] as dynamic;
-      final departments = results[1] as List<ListOfAllDepartmets>; 
+      final departments = results[1] as List<ListOfAllDepartmets>;
       final yearlyNepBudget = totalBudgetResult.totalInPesos ~/ 2;
 
       _cache[cacheKey] = _BudgetData(
         departments: departments,
         totalNepBudget: yearlyNepBudget,
         totalDepartments: departments.length,
-        totalAgencies: departments.fold<int>(
-            0, (sum, dept) => sum + dept.totalAgencies),
-        totalProjects: 0, 
+        totalAgencies: departments.fold<int>(0, (sum, dept) => sum + dept.totalAgencies),
+        totalProjects: 0,
       );
       _saveDepartmentsCacheToDisk();
 
@@ -185,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
     bool allDetailsCached = true;
 
     for (var dept in departments) {
-      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP'; // Use type-specific key
+      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP';
       if (detailsCache.containsKey(cacheKey)) {
         final details = DepartmentDetails.fromJson(detailsCache[cacheKey] as Map<String, dynamic>);
         totalProjects += details.totalProjects;
@@ -214,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
     List<Future> prefetchFutures = [];
 
     for (var dept in departments) {
-      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP'; // Use type-specific key
+      final cacheKey = 'department-details:${dept.code}:$_selectedYear:NEP';
       if (!detailsCache.containsKey(cacheKey)) {
         prefetchFutures.add(
           fetchDepartmentDetails(code: dept.code, year: _selectedYear, type: 'NEP').then((details) {
@@ -328,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onYearChanged(String? newValue) {
-    if (newValue != null && newValue != _selectedYear) { 
+    if (newValue != null && newValue != _selectedYear) {
       setState(() => _selectedYear = newValue);
       _refreshData();
     }
@@ -337,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6FAFF),
+      backgroundColor: _backgroundColor,
       appBar: Header(
         selectedYear: _selectedYear,
         selectedType: 'NEP',
@@ -345,22 +354,24 @@ class _HomeScreenState extends State<HomeScreen> {
         onYearChanged: _onYearChanged,
         onTypeChanged: (String? newValue) {},
         onRefresh: _refreshData,
-        color: const Color(0xFF1565C0),
+        color: _primaryColor,
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
+        color: _accentColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeroSection(),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               _buildStatsGrid(),
-              const SizedBox(height: 21),
+              const SizedBox(height: 24),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
                 child: DepartmentCards(
+                  key: ValueKey('departments-$_selectedYear'),
                   isLoading: _isLoading,
                   errorMessage: _errorMessage,
                   departments: _departments,
@@ -368,20 +379,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   selectedType: 'NEP',
                 ),
               ),
-              const SizedBox(height: 21),
+              const SizedBox(height: 10),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
                 child: RegionalBudgetCards(
+                  key: ValueKey('regions-$_selectedYear'),
                   isLoading: _isRegionsLoading,
                   errorMessage: _regionsErrorMessage,
                   regions: _regions,
                   selectedYear: _selectedYear,
                 ),
               ),
-              const SizedBox(height: 21),
+              const SizedBox(height: 35),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
                 child: ExpenseCards(
+                  key: ValueKey('expenses-$_selectedYear'),
                   isLoading: _isExpensesLoading,
                   errorMessage: _expensesErrorMessage,
                   expenses: _expenses,
@@ -408,29 +421,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
+          colors: [_primaryColor, _secondaryColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0D47A1),
-            Color(0xFF1565C0),
-            Color(0xFF1976D2),
-          ],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.3),
+            color: _primaryColor.withOpacity(0.3),
             blurRadius: 30,
             offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(6),
@@ -451,10 +461,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              "Transparency in Every Peso",
-              textAlign: TextAlign.center,
+              "Philippine National Budget",
               style: TextStyle(
-                fontSize: 34,
+                fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 letterSpacing: -1,
@@ -463,8 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              "Track Philippine national budget allocations across departments, regions, and programs",
-              textAlign: TextAlign.center,
+              "Track budget allocations and expenditures across departments, regions, and programs",
               style: TextStyle(
                 fontSize: 15,
                 color: Colors.white.withOpacity(0.9),
@@ -488,13 +496,8 @@ class _HomeScreenState extends State<HomeScreen> {
             title: "Total NEP Budget",
             value: _formatLargeNumber(_totalNepBudget),
             subtitle: "National Expenditure Program $_selectedYear",
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0F4C81), Color(0xFF2E8BC0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -503,17 +506,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: "Departments",
                   value: _totalDepartments.toString(),
                   subtitle: "${_formatNumber(_totalProjects)} Projects",
-                  accentColor: const Color(0xFF1565C0),
+                  accentColor: _primaryColor,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildModernStatCard(
                   icon: Icons.location_on_rounded,
                   title: "Regions",
                   value: _totalRegions.toString(),
                   subtitle: "Geographic coverage",
-                  accentColor: const Color(0xFF1565C0),
+                  accentColor: _secondaryColor,
                 ),
               ),
             ],
@@ -528,27 +531,29 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String value,
     required String subtitle,
-    required Gradient gradient,
   }) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: gradient,
+        color: _surfaceColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.4),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: _primaryColor.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
+              gradient: LinearGradient(
+                colors: [_primaryColor, _secondaryColor],
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -565,26 +570,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.grey[600],
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
-
+                const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: _primaryColor,
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.75),
+                    color: Colors.grey[600],
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -608,15 +614,16 @@ class _HomeScreenState extends State<HomeScreen> {
       height: 165,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _surfaceColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.15),
+            color: accentColor.withOpacity(0.08),
             blurRadius: 20,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 4),
           ),
         ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,36 +649,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   size: 24,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: accentColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Active',
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
           Column(
@@ -690,14 +667,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       letterSpacing: -1.5,
                     ),
                   ),
-                  const SizedBox(width: 6)  ,
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF0D47A1),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: _primaryColor,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                 ],
@@ -706,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.grey[500],
+                  color: Colors.grey[600],
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),

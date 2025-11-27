@@ -44,13 +44,13 @@ class _DepartmentCardsState extends State<DepartmentCards> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header Section
             _buildHeader(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
             
             // Content Section
             _buildContent(),
@@ -205,13 +205,13 @@ class _DepartmentCardsState extends State<DepartmentCards> {
           itemBuilder: (context, index) {
             final dept = visibleDepartments[index];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: 5.0),
               child: _buildDepartmentCard(dept),
             );
           },
         ),
         if (isCollapsible) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           _buildExpansionButton(),
         ],
       ],
@@ -240,28 +240,31 @@ class _DepartmentCardsState extends State<DepartmentCards> {
         border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
         child: ExpansionTile(
-          //animationDuration: const Duration(milliseconds: 350),
-          tilePadding: const EdgeInsets.all(20),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 2),
           onExpansionChanged: (isExpanded) {
             setState(() {
               _isCardExpanded[dept.code] = isExpanded;
             });
           },
           leading: Container(
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.account_balance, color: Colors.white, size: 20),
+            child: const Icon(Icons.account_balance, color: Colors.white, size: 18),
           ),
           title: Text(
             dept.description,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: Colors.black87,
               height: 1.3,
@@ -273,7 +276,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
               'Code: ${dept.code}',
               style: TextStyle(
                 color: _primaryColor,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -286,7 +289,6 @@ class _DepartmentCardsState extends State<DepartmentCards> {
               child: child,
             ),
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -296,16 +298,16 @@ class _DepartmentCardsState extends State<DepartmentCards> {
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Column( 
                 children: [
-                  const Divider(height: 20),
+                  const Divider(height: 8),
                   _buildBudgetInfo(nepBudget, gaaBudget),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildStatRow(dept),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildChangeIndicator(difference, change),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildCardActionButton(dept),
                 ],
               ),
@@ -425,7 +427,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
               )
             : Text(
                 'View Full Details',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _surfaceColor),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _surfaceColor),
               ),
         style: ElevatedButton.styleFrom(
           backgroundColor: _primaryColor,
@@ -434,7 +436,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
           elevation: 2,
           shadowColor: _primaryColor.withOpacity(0.3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 5),
         ),
       ),
     );
@@ -455,8 +457,8 @@ class _DepartmentCardsState extends State<DepartmentCards> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
+        ), 
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -464,7 +466,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
               _isExpanded ? 'Show Less' : 'Show All ${widget.departments.length} Departments',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
             const SizedBox(width: 8),
@@ -623,6 +625,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
 
   String _formatLargeNumber(num? number) {
     if (number == null || number == 0) return '₱0';
+    if (number == 0) return '₱0'; // No change needed
     if (number >= 1e12) return '₱${(number / 1e12).toStringAsFixed(2)}T';
     if (number >= 1e9) return '₱${(number / 1e9).toStringAsFixed(2)}B';
     if (number >= 1e6) return '₱${(number / 1e6).toStringAsFixed(2)}M';

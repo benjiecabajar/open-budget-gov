@@ -35,7 +35,7 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -62,7 +62,7 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
             color: Colors.grey[300],
             height: 1,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           _buildContent(),
         ],
       ),
@@ -90,13 +90,13 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
             itemBuilder: (context, index) {
               final region = visibleRegions[index];
               return Padding( 
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 5.0),
                 child: _buildRegionCard(region),
               );
             },
           ),
           if (isCollapsible) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
             _buildExpansionButton(),
           ],
         ],
@@ -118,7 +118,7 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       case '02':
         description = 'Region II - Cagayan Valley';
         break;
-      case '03': // Corrected from 'Region II' to 'Region III'
+      case '03':
         description = 'Region III - Central Luzon';
         break;
       case '04':
@@ -151,7 +151,7 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
       case '13':
         description = 'National Capital Region (NCR)';
         break;
-      case '14': // Corrected from 'Cordillera Administrative Region (CAR)'
+      case '14':
         description = 'Cordillera Administrative Region (CAR)';
         break;
       case '15': 
@@ -187,22 +187,26 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
         border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.all(20),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
           onExpansionChanged: (isExpanded) {
             setState(() {
               _isCardExpanded[region.code] = isExpanded;
             });
           },
           leading: Container(
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.map_rounded, color: Colors.white, size: 20),
+            child: const Icon(Icons.map_rounded, color: Colors.white, size: 18),
           ),
           title: Text(
             description,
@@ -221,7 +225,6 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
               child: child,
             ),
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -231,14 +234,14 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Column(
-                children: [
-                  const Divider(height: 20),
+                children: [ 
+                  const Divider(height: 8),
                   _buildBudgetInfo(region.totalBudgetPesos, region.totalBudgetGaaPesos),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildStatRow(region),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildChangeIndicator(difference, change),
                 ],
               ),
@@ -524,8 +527,8 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        ), 
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -533,7 +536,7 @@ class _RegionalBudgetCardsState extends State<RegionalBudgetCards> {
               _isExpanded ? 'Show Less' : 'Show All ${widget.regions.length} Regions',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
             const SizedBox(width: 8),

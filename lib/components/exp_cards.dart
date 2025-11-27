@@ -33,7 +33,7 @@ class _ExpenseCardsState extends State<ExpenseCards> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -60,7 +60,7 @@ class _ExpenseCardsState extends State<ExpenseCards> {
             color: Colors.grey[300],
             height: 1,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           _buildContent(),
         ],
       ),
@@ -106,14 +106,16 @@ class _ExpenseCardsState extends State<ExpenseCards> {
       child: Theme(
         data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.all(20),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 2),
           leading: Container(
-            width: 40,
-            height: 40,
+            width: 35,
+            height: 35,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]),
+              gradient: LinearGradient(colors: [_primaryColor, _secondaryColor]), 
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.category_rounded, color: Colors.white, size: 20),
@@ -155,7 +157,6 @@ class _ExpenseCardsState extends State<ExpenseCards> {
               child: child,
             ),
             child: Container(
-              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -166,15 +167,15 @@ class _ExpenseCardsState extends State<ExpenseCards> {
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Divider(height: 20),
+                children: [ 
+                  const Divider(height: 8),
                   _buildBudgetInfo(expense.nep.amountPesos, expense.gaa.amountPesos),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   _buildChangeIndicator(difference, change),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   ...expense.subClasses.map((subClass) => _buildSubClassTile(subClass)),
                 ],
               ),
@@ -187,7 +188,11 @@ class _ExpenseCardsState extends State<ExpenseCards> {
 
   Widget _buildSubClassTile(ExpenseSubClass subClass) {
     return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      data: Theme.of(context).copyWith(
+        dividerColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(subClass.description, style: TextStyle(color: _primaryColor, fontWeight: FontWeight.w700, fontSize: 14)),
@@ -218,7 +223,11 @@ class _ExpenseCardsState extends State<ExpenseCards> {
 
   Widget _buildGroupTile(ExpenseGroup group) {
     return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      data: Theme.of(context).copyWith(
+        dividerColor: Colors.transparent,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         title: Text(group.description, style: TextStyle(color: _secondaryColor, fontWeight: FontWeight.w600, fontSize: 13)),

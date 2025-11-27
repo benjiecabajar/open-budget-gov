@@ -586,12 +586,13 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
 								fontWeight: FontWeight.w700,
 							),
 						),
-						const SizedBox(height: 4), // Fix: Expected an identifier.
-						Text("No data available for the selected year.", // Fix: Expected an identifier.
+						const SizedBox(height: 4),
+						Text(
+							"No data available for the selected year.",
 							style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500)
 						),
-					]),
-				
+					],
+				),
 			),
 		);
 	}
@@ -716,7 +717,6 @@ class _DepartmentDetailsPageState extends State<DepartmentDetailsPage> {
           splashColor: Colors.transparent,
         ),
 				child: ExpansionTile(
-				//animationDuration: const Duration(milliseconds: 350), // Removed as it's not a valid parameter for ExpansionTile
 					tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
 					leading: Container(
 						width: 40,
