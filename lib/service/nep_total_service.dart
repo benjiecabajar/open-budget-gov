@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:budget_gov/model/total_budget.dart';
+import 'package:budget_gov/model/nep_total.dart';
 import 'package:budget_gov/service/dep_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;

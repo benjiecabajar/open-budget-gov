@@ -67,7 +67,7 @@ class _DepartmentCardsState extends State<DepartmentCards> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [            
-            const SizedBox(width: 12),
+            const SizedBox(width: 1),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

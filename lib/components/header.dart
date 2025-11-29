@@ -62,7 +62,7 @@ class _HeaderState extends State<Header> with SingleTickerProviderStateMixin {
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1976D2)],
+            colors: [Color(0xFF1976D2), Color(0xFF1565C0), Color(0xFF0D47A1)],//0xFF1976D2
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:budget_gov/model/dep_list.dart';
 import 'package:budget_gov/service/dep_service.dart';
 import 'package:budget_gov/model/reg_list.dart';
-import 'package:budget_gov/service/budgets_service.dart';
+import 'package:budget_gov/service/nep_total_service.dart';
 import 'package:budget_gov/service/reg_list_service.dart';
 import 'package:budget_gov/service/exp_service.dart';
 import 'package:budget_gov/service/dep_details_service.dart';
@@ -365,9 +365,9 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeroSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 10),
               _buildStatsGrid(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
                 child: DepartmentCards(
@@ -421,10 +421,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
+        // You can layer the gradient over the image for a nice effect
         gradient: LinearGradient(
-          colors: [_primaryColor, _secondaryColor],
+          colors: [_primaryColor.withOpacity(0.9), _secondaryColor.withOpacity(0.9)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+        ),
+        image: const DecorationImage(
+          // Make sure to add the asset to your pubspec.yaml file
+          image: AssetImage('assets/images/background.png'),
+          fit: BoxFit.cover,
+          // Adjust the opacity to make the text more readable
+          opacity: 0.3
         ),
         boxShadow: [
           BoxShadow(
@@ -459,23 +467,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height:16),
             const Text(
               "Philippine National Budget",
               style: TextStyle(
                 fontSize: 32,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
                 letterSpacing: -1,
                 height: 1.1,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             Text(
-              "Track budget allocations and expenditures across departments, regions, and programs",
+              "Track budget allocations and expenditures across departments, regions, and programs.",
               style: TextStyle(
                 fontSize: 15,
                 color: Colors.white.withOpacity(0.9),
+                fontWeight: FontWeight.w400,
                 height: 1.6,
                 letterSpacing: 0.3,
               ),
@@ -492,12 +501,17 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           _buildLargeStatCard(
-            icon: Icons.account_balance_wallet_rounded,
-            title: "Total NEP Budget",
-            value: _formatLargeNumber(_totalNepBudget),
-            subtitle: "National Expenditure Program $_selectedYear",
-          ),
-          const SizedBox(height: 12),
+            iconWidget: Image.asset(
+              'assets/images/peso.png',
+              width: 23,
+              height: 23,
+              color: Colors.white,
+            ),
+            title: "Total NEP Budget", // Corrected title
+            value: _formatLargeNumber(_totalNepBudget), // Corrected value
+            subtitle: "National Expenditure Program $_selectedYear", // Corrected subtitle
+          ), 
+          const SizedBox(height: 5),
           Row(
             children: [
               Expanded(
@@ -509,7 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   accentColor: _primaryColor,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 5),
               Expanded(
                 child: _buildModernStatCard(
                   icon: Icons.location_on_rounded,
@@ -527,13 +541,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildLargeStatCard({
-    required IconData icon,
+    required Widget iconWidget,
     required String title,
     required String value,
     required String subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         color: _surfaceColor,
         borderRadius: BorderRadius.circular(16),
@@ -547,22 +561,8 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_primaryColor, _secondaryColor],
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -571,22 +571,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   title,
                   style: TextStyle(
                     color: Colors.grey[600],
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
                     color: _primaryColor,
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
@@ -597,6 +598,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 20),
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_primaryColor, _secondaryColor],
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: iconWidget,
           ),
         ],
       ),
@@ -611,8 +623,8 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color accentColor,
   }) {
     return Container(
-      height: 165,
-      padding: const EdgeInsets.all(20),
+      height: 120,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _surfaceColor,
         borderRadius: BorderRadius.circular(16),
@@ -627,13 +639,38 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: accentColor,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.5,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: _primaryColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -651,46 +688,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.5,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: _primaryColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
